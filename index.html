@@ -73,6 +73,14 @@
             ]
         };
 
+        // Variables globales del juego
+        let frames = 0;
+        const entities = {
+            suns: [],
+            peas: [],
+            lawnmowers: []
+        };
+
         // Recursos
         const resources = {
             images: {},
@@ -112,9 +120,155 @@
         }
 
         function loop() {
+            updateGame();
             render();
             requestAnimationFrame(loop);
         }
+
+        // --- [INICIO TAREA 1.3] ---
+        // TAREA 1.3: Entidades Pasivas (Sun, Pea, Lawnmower)
+
+        // Clase Sun: Sol que cae desde arriba
+        class Sun {
+            constructor(x, y, targetY = null) {
+                this.x = x;
+                this.y = y;
+                this.targetY = targetY || (Math.random() * 400 + 300); // Punto aleatorio donde se detiene
+                this.falling = true;
+                this.speed = 1.5; // Velocidad de caída
+                this.radius = 30; // Radio para colisión
+            }
+
+            update() {
+                if (this.falling) {
+                    this.y += this.speed;
+                    // Se detiene al alcanzar targetY
+                    if (this.y >= this.targetY) {
+                        this.y = this.targetY;
+                        this.falling = false;
+                    }
+                }
+            }
+
+            draw(ctx) {
+                // Dibujar un círculo amarillo brillante como sol
+                ctx.save();
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                // Contorno más brillante
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Método vacío para recolección (se implementará en Lote 2)
+            collect() {
+                // TODO: Implementar en Lote 2
+            }
+        }
+
+        // Clase Pea: Proyectil que viaja hacia la derecha
+        class Pea {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.speed = 8; // Velocidad constante hacia la derecha
+                this.radius = 10; // Radio para colisión
+            }
+
+            update() {
+                this.x += this.speed;
+            }
+
+            draw(ctx) {
+                // Dibujar un círculo verde como guisante
+                ctx.save();
+                ctx.fillStyle = '#00FF00';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                // Añadir brillo
+                ctx.fillStyle = '#90EE90';
+                ctx.beginPath();
+                ctx.arc(this.x - 3, this.y - 3, this.radius / 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Verificar si está fuera de pantalla
+            isOffScreen() {
+                return this.x > canvas.width + this.radius;
+            }
+        }
+
+        // Clase Lawnmower: Cortacésped que se desplaza a alta velocidad
+        class Lawnmower {
+            constructor(x, y, row) {
+                this.x = x;
+                this.y = y;
+                this.row = row; // Fila en la que está
+                this.active = false;
+                this.speed = 15; // Alta velocidad cuando se activa
+            }
+
+            update() {
+                if (this.active) {
+                    this.x += this.speed;
+                }
+            }
+
+            draw(ctx) {
+                // Dibujar un rectángulo rojo como cortacésped
+                ctx.save();
+                ctx.fillStyle = this.active ? '#FF0000' : '#8B0000';
+                ctx.fillRect(this.x - 20, this.y - 15, 40, 30);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - 20, this.y - 15, 40, 30);
+                ctx.restore();
+            }
+
+            // Activar el cortacésped
+            activate() {
+                this.active = true;
+            }
+
+            // Verificar si está fuera de pantalla
+            isOffScreen() {
+                return this.x > canvas.width + 50;
+            }
+        }
+
+        // Función de actualización del juego
+        function updateGame() {
+            frames++;
+
+            // Actualizar todas las entidades
+            entities.suns.forEach(sun => sun.update());
+            entities.peas.forEach(pea => pea.update());
+            entities.lawnmowers.forEach(lawnmower => lawnmower.update());
+
+            // Limpiar entidades fuera de pantalla
+            entities.peas = entities.peas.filter(pea => !pea.isOffScreen());
+            entities.lawnmowers = entities.lawnmowers.filter(lawnmower => !lawnmower.isOffScreen());
+
+            // DUMMY TRIGGER PARA TESTING - Task 1.3
+            // Instanciar automáticamente un Sun cayendo y un Pea cruzando cada 120 frames
+            if (frames % 120 === 0) {
+                // Crear un sol cayendo desde una posición aleatoria en X
+                const randomX = Math.random() * (canvas.width - 200) + 100;
+                entities.suns.push(new Sun(randomX, 50));
+
+                // Crear un guisante desde el lado izquierdo en una posición Y aleatoria
+                const randomY = Math.random() * (CONFIG.grid.endY - CONFIG.grid.startY) + CONFIG.grid.startY;
+                entities.peas.push(new Pea(100, randomY));
+            }
+        }
+
+        // --- [FIN TAREA 1.3] ---
 
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -125,10 +279,15 @@
             // 2. Grid (Lineas rojas)
             drawGrid();
 
-            // 3. Cortacesped
+            // 3. Entidades (suns, peas) - TAREA 1.3
+            entities.suns.forEach(sun => sun.draw(ctx));
+            entities.peas.forEach(pea => pea.draw(ctx));
+            entities.lawnmowers.forEach(lawnmower => lawnmower.draw(ctx));
+
+            // 4. Cortacesped estáticos
             drawLawnmowers();
 
-            // 4. Barra de semillas y UI
+            // 5. Barra de semillas y UI
             drawUI();
         }
 
