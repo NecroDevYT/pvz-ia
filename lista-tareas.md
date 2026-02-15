@@ -1,127 +1,111 @@
 # 🧟‍♂️ PVZ WEB CLONE - MASTER TASK LIST PARA AGENTES IA 🌻
 
 ## 📜 REGLAS GLOBALES DE OPERACIÓN (LEER ANTES DE CODIFICAR)
-1. **Un solo archivo:** Todo el desarrollo se hace en `index.html`. NO crees archivos `.js` o `.css` separados.
-2. **Inyección por Anclas:** Busca en `index.html` los comentarios de anclaje (ej. `// --- [INICIO TAREA 1.1] ---`). Escribe tu código ESTRICTAMENTE dentro de esa zona para evitar Merge Conflicts con otros agentes trabajando en paralelo.
-3. **Vanilla JS:** Usa ES6+, HTML5 Canvas Context 2D. Prohibido usar librerías externas o módulos.
-4. **Dummy Trigger Obligatorio:** En cada tarea, debes incluir un fragmento de código temporal (marcado con `// DUMMY TRIGGER PARA TESTING`) que fuerce la visualización de tu código. El Tech Lead revisará tu PR visualmente en el navegador. Si tu código no se puede ver/escuchar inmediatamente al abrir la página, el PR será rechazado.
-5. **Rendimiento:** Las animaciones lógicas van a 30 FPS gestionadas mediante contadores de frames (usando la variable global `frames` y modulo `%`).
+1. **Un solo archivo:** Todo el desarrollo se hace en `index.html`. NO crees archivos `.js` o `.css`.
+2. **Inyección por Anclas:** Busca en `index.html` los comentarios de anclaje (ej. `// --- [INICIO_ZONA_CLASE_SUN_1.1] ---`). Escribe tu código ESTRICTAMENTE dentro de esa zona para evitar Merge Conflicts.
+3. **Vanilla JS:** Usa ES6+, HTML5 Canvas Context 2D.
+4. **Dummy Trigger Obligatorio:** En cada tarea, debes incluir código de prueba temporal. **MUY IMPORTANTE:** El código de prueba que vaya en `initGame()` o `updateGame()` DEBE ir inyectado estrictamente dentro de tu respectiva "Caja de Arena" (ej. `// === [TRIGGER_TAREA_1.1] ===`). No lo pongas suelto.
+5. **Rendimiento:** Animaciones gestionadas usando la variable global `frames` y módulo `%`.
+6. **Ramas Estrictas:** Trabaja exclusivamente en la rama indicada usando `git checkout -b <nombre-de-la-rama>`.
 
 ---
 
-## 📦 LOTE 1: SISTEMAS BASE Y ENTORNO (Ejecución Paralela Segura)
+## 📦 LOTE 1: ECONOMÍA, UI Y PLANTADO
 
-### TAREA 1.1: Motor de Audio (`AudioManager`)
-* **Objetivo:** Crear la clase para gestionar los sonidos del juego precargándolos desde la carpeta `recursos/sonidos/`.
-* **Especificaciones:** - Usar `encodeURIComponent` para las rutas (hay archivos con espacios, ej: `Los zombis se acercan inicio.mp3`).
-  - El método `play(name, volume)` debe hacer un `.cloneNode()` del audio para permitir que el mismo sonido se reproduzca varias veces simultáneamente (ej. múltiples choques de guisantes).
-* **Dummy Trigger:** Añade un `window.addEventListener('click')` global que reproduzca `Los zombis se acercan inicio.mp3` la primera vez que el usuario haga clic en la pantalla.
-
-### TAREA 1.2: Sistema de Efectos Visuales (Partículas y Textos)
-* **Objetivo:** Crear las clases `Particle` y `FloatingText`, y la función global `spawnParticles(x,y,colors,count,speed,size,types)`.
+### TAREA 1.1: Mecánica de Soles (Caída y Animación)
+* **Rama:** `feat/tarea-1.1-mecanica-soles`
+* **Objetivo:** Lógica de recolección de moneda (Clase `Sun`).
 * **Especificaciones:**
-  - Las partículas deben tener física: velocidad inicial radial (sin/cos), gravedad (`vy += 0.2`) y fricción del aire (`vx *= 0.92; vy *= 0.92`).
-  - Soportar 3 tipos de renderizado en Canvas: `'circle'`, `'square'`, y `'spark'` (este último usa `globalCompositeOperation = 'lighter'` para efecto de brillo).
-  - Los textos flotantes deben subir lentamente en el eje Y y desvanecerse (fade-out con `globalAlpha`).
-* **Dummy Trigger:** Un evento `mousedown` en el Canvas que llame a `spawnParticles` generando una explosión multicolor y un `FloatingText` que diga "TEST" en la posición del ratón.
+  - `Sun` cae hasta un `finalY` aleatorio y detiene su caída.
+  - Al hacer clic, `isCollecting = true`. Usar Lerp (factor `0.15`) para moverlo hacia la UI en `(105, 100)`.
+  - Al llegar a destino: sumar 25 soles, reproducir `audio.play('sun')`, y crear `FloatingText` ("+25") dorado y partículas (`#FFD700`, `#FFFF00`) tipo `spark` y `circle`.
+* **Dummy Trigger (Caja 1.1):** En `initGame()`, invoca `spawnSun(200, 300, false)` y `spawnSun(400, 300, false)` para tener dos soles estáticos listos.
 
-### TAREA 1.3: Entidades Pasivas (`Sun`, `Pea`, `Lawnmower`)
-* **Objetivo:** Crear la lógica de movimiento base de entidades que no requieren IA compleja.
+### TAREA 1.2: Planta Fantasma y Selección
+* **Rama:** `feat/tarea-1.2-seleccion-fantasma`
+* **Objetivo:** Interacción de la barra superior.
 * **Especificaciones:**
-  - `Sun`: Debe caer en el eje Y hasta un punto aleatorio y detenerse. Debe tener un método `collect()` vacío (se implementará en el Lote 2).
-  - `Pea`: Proyectil que viaja constantemente hacia la derecha (eje X).
-  - `Lawnmower`: Se desplaza hacia la derecha a alta velocidad cuando `active == true`.
-* **Dummy Trigger:** En el bucle principal (`updateGame`), instancia automáticamente un `Sun` cayendo y un `Pea` cruzando la pantalla cada 120 frames.
+  - Detectar clic en rectángulos de la UI de semillas (Y entre 20 y 160) para actualizar `selectedSeed`.
+  - En `drawGame()`, si hay `selectedSeed` y el ratón está sobre el grid, dibujar la planta con `globalAlpha = 0.4` haciendo *snap* exacto en el centro de la celda.
+
+### TAREA 1.3: Sistema de Plantado y Recursos
+* **Rama:** `feat/tarea-1.3-plantado-base`
+* **Objetivo:** Instanciar la planta real en el mapa (Clase `Plant`).
+* **Especificaciones:**
+  - Evento `mousedown`: si hay soles suficientes y cooldown (`timer`) <= 0, descontar costo e instanciar `Plant`.
+  - Al plantar: Generar `FloatingText` rojo ("-" + costo), reproducir `audio.play('plant')`, y generar partículas cuadradas de tierra (`#8B4513`, `#A0522D`).
+* **Dummy Trigger (Caja 1.3):** Ajusta temporalmente `sunAmount = 5000` en `initGame()` para tener soles ilimitados.
 
 ---
 
-## 📦 LOTE 2: INTERFAZ (UI) Y CONTROLES (Ejecución Paralela Segura)
+## 📦 LOTE 2: AMENAZA Y COMBATE
 
-### TAREA 2.1: Interacción de Economía (Soles)
-* **Objetivo:** Permitir la recolección de soles y actualizar el HUD.
+### TAREA 2.1: Zombis Base y Feedback de Daño
+* **Rama:** `feat/tarea-2.1-zombis-base`
+* **Objetivo:** Movimiento, estados y daño del enemigo (Clase `Zombie`).
 * **Especificaciones:**
-  - Detectar colisión del ratón (clic) con el radio de los objetos `Sun` activos.
-  - Al hacer clic, el sol debe moverse usando interpolación matemática (Lerp) hacia el contador de la esquina superior izquierda `(105, 100)`.
-  - Al llegar: sumar 25 a `sunAmount`, reproducir sonido, borrar el sol e instanciar un `FloatingText` dorado con "+25".
-* **Dummy Trigger:** Instanciar 3 soles estáticos en el suelo al iniciar el juego para que el Tech Lead pueda hacer clic en ellos inmediatamente.
+  - Estados: `walk`, `eat`, `die`.
+  - Daño visual: Al recibir daño, usar `flashTimer = 4` para tintar al zombi de blanco (`source-atop` con `rgba(255, 255, 255, 0.3)`).
+  - Muerte visual: Cambiar a estado `die`, detener animación al último frame, e iniciar `fadeTimer` hasta 45 para desvanecer su `globalAlpha` antes de marcar para borrado. Generar partículas moradas (`#663399`, `#4B0082`).
+* **Dummy Trigger (Caja 2.1):** En `initGame()`, haz `zombies.push(new Zombie())` para forzar su aparición inicial.
 
-### TAREA 2.2: Selección de Semillas y Planta Fantasma
-* **Objetivo:** Lógica del menú superior y visualización en la cuadrícula.
+### TAREA 2.2: Detección y Fogonazos de Lanzaguisantes
+* **Rama:** `feat/tarea-2.2-proyectiles-lanzaguisantes`
+* **Objetivo:** Lógica de ataque de la planta y clase `Pea`.
 * **Especificaciones:**
-  - Detectar clics en las "cartas" de la barra superior para guardar el objeto en `selectedSeed`.
-  - En `drawGame()`, si hay una `selectedSeed`, detectar sobre qué celda de la cuadrícula (9 columnas x 5 filas, de 90,280 a 1577,1260) está el ratón.
-  - Dibujar la imagen de la planta correspondiente haciendo *snap* exacto en el centro de esa celda, con un `globalAlpha = 0.4` (Planta Fantasma). Si la celda está ocupada (`gridState !== null`), no dibujar la planta fantasma.
-* **Dummy Trigger:** Ninguno extra, la propia planta fantasma al pasar el ratón es el trigger.
+  - Si hay un zombi en la misma fila (`row`) y a la derecha (`x > this.x`), cambiar animación a `lg_ataque`.
+  - En el `frame === 27` de su animación: llamar a `spawnPea()` y generar partículas de chispas amarillas (`#FFFF00`, `#ADFF2F`) en su boca.
+* **Dummy Trigger (Caja 2.2):** En `initGame()`, fuerza la creación de un `new Plant('lanzaguisantes', 0, 2)` y un `new Zombie()` asignado a la misma fila (`row = 2`).
 
-### TAREA 2.3: Barra de Progreso HUD
-* **Objetivo:** Renderizar el indicador de oleadas en la esquina inferior derecha.
+### TAREA 2.3: Colisiones
+* **Rama:** `feat/tarea-2.3-colisiones`
+* **Objetivo:** Cruce de Hitboxes (`checkCollisions()`).
 * **Especificaciones:**
-  - Función `drawProgressBar()`. Ensamblar `barra.png`, `bandera.png` y `cabeza de zombi.png`.
-  - El relleno verde de progreso y la cabeza del zombi deben avanzar de DERECHA a IZQUIERDA basado en la fórmula `zombiesSpawned / LEVEL_CONFIG.totalZombies`.
-* **Dummy Trigger:** Forzar que la variable `zombiesSpawned` aumente un punto cada 10 frames de forma automática y se reinicie al llegar al máximo, para ver la barra moverse de derecha a izquierda infinitamente.
+  - Si `Pea` choca con `Zombie` (margen de 40px), llamar `z.takeDamage(20, 'projectile')`, borrar guisante, reproducir `audio.play('hit')` y generar partículas verdes (`#33FF33`, `#00CC00`).
 
 ---
 
-## 📦 LOTE 3: EL REPARTO PRINCIPAL (Ejecución Paralela Segura)
+## 📦 LOTE 3: HERRAMIENTAS Y BALANCE
 
-### TAREA 3.1: Lógica de las Plantas (`Plant`)
-* **Objetivo:** Comportamientos y animaciones de los 4 tipos de plantas.
+### TAREA 3.1: Cooldown de Semillas y Pala
+* **Rama:** `feat/tarea-3.1-cooldown-pala`
+* **Objetivo:** Control de economía.
 * **Especificaciones:**
-  - **Girasol:** Genera un `Sun` en sus coordenadas cada X frames.
-  - **Lanzaguisantes:** En el frame 27 de su animación de ataque, instancia un `Pea` e invoca `spawnParticles` (chispas amarillas simulando fogonazo).
-  - **Cereza:** En su fotograma 23, explota (daño radial masivo a zombis), sacude la pantalla (`screenShake`) y genera humo/fuego masivo con `spawnParticles`.
-  - **Sombra:** Todas las plantas deben dibujar una sombra dinámica elíptica en su base basada en su ancho/alto.
-* **Dummy Trigger:** En la función `initGame()`, instanciar (hardcodear) un Girasol, un Lanzaguisantes y una Cereza en diferentes casillas para ver sus bucles de animación al abrir la web.
+  - Semillas en UI: Dibujar un rectángulo superpuesto oscuro (`rgba(0, 0, 0, 0.5)`) basado en la proporción `timer / cooldown`.
+  - Pala (`isShovelActive`): Al hacer clic en una planta existente, marcar para borrado, reproducir `audio.play('shovel')` y generar partículas marrones de tierra.
 
-### TAREA 3.2: Máquina de Estados del Zombi (`Zombie`)
-* **Objetivo:** Movimiento, animaciones y muerte de los enemigos.
+### TAREA 3.2: Herramientas de Desarrollo (Debug Mode)
+* **Rama:** `feat/tarea-3.2-debug-tools`
+* **Objetivo:** Controles de Tech Lead.
 * **Especificaciones:**
-  - Estados: `walk`, `eat`, `die`, `charred` (quemado por cereza).
-  - Fade-out: Cuando el estado sea `die` y termine su animación, el sprite debe reducir su opacidad progresivamente hasta desaparecer.
-  - Sombra: Dibujar una elipse oscura bajo el zombi que se desvanezca al mismo ritmo que su fade-out.
-* **Dummy Trigger:** Instanciar automáticamente un Zombi cada 60 frames apareciendo desde el lado derecho extremo de la pantalla caminando hacia la izquierda.
+  - Tecla `P`: Alternar `isPaused`.
+  - Tecla `D`: Alternar `isDebug`. Dibuja líneas rojas para el grid, hitboxes rojos para entidades, azules para cortacésped, amarillos para soles/guisantes y texto de FPS en la esquina. En modo Debug, ignorar costos y cooldowns.
+* **Dummy Trigger (Caja 3.2):** Forzar `isDebug = true` al inicio para revisar las cajas de colisión.
+
+### TAREA 3.3: Progreso HUD y Audios Aleatorios
+* **Rama:** `feat/tarea-3.3-hud-audios`
+* **Objetivo:** Feedback visual de hordas e inmersión.
+* **Especificaciones:**
+  - Crear `drawProgressBar()`. Mover la bandera y la cabeza del zombi en el eje X basándose en `zombiesSpawned / LEVEL_CONFIG.totalZombies`.
+  - Bucle de Zombis: Cada 180 frames, si hay zombis vivos, 70% de probabilidad de reproducir un gruñido aleatorio (`groan1` a `groan5`).
+* **Dummy Trigger (Caja 3.3):** En `updateGame()`, suma `1` a `zombiesSpawned` cada `30` frames para simular avance rápido.
 
 ---
 
-## 📦 LOTE 4: COLISIONES Y COMBATE (¡CUIDADO AL HACER MERGE!)
-*Nota para los Agentes: Ambas tareas modifican el ciclo `updateGame()` y métodos de las entidades. Aísla bien tu código.*
+## 📦 LOTE 4: EL CAOS Y EL FINAL
 
-### TAREA 4.1: Plantas atacan Zombis
-* **Objetivo:** Registro de impactos de proyectiles y área de efecto.
+### TAREA 4.1: La Petacereza y Screen Shake
+* **Rama:** `feat/tarea-4.1-petacereza`
+* **Objetivo:** Explosivo de área.
 * **Especificaciones:**
-  - En `checkCollisions()`, si un `Pea` toca el hitbox de un Zombi: borrar guisante, reproducir sonido hit, crear partículas de savia verde, restar 20 HP al zombi.
-  - Tintado de Daño: El zombi debe parpadear en blanco durante 4 frames (usando un canvas off-screen y `globalCompositeOperation = 'source-atop'`).
-  - Al morir (`HP <= 0`), pasar a estado `die` y soltar polvo morado.
-* **Dummy Trigger:** Un zombi inmóvil en el centro del mapa que reciba impactos automáticos de guisantes cada segundo.
+  - Clase `Plant` tipo `cereza`: En el `frame === 23`, invoca `screenShake = 15`, `audio.play('explosion')` y 80 partículas de fuego (`#FF4500`, `#FF8C00`).
+  - Daño masivo (9999) en un rango de `CELL_WIDTH * 1.5`. Zombis afectados cambian a estado `charred` (`source-in` negro) y se desvanecen.
+* **Dummy Trigger (Caja 4.1):** En `initGame()`, fuerza la aparición de un `new Plant('cereza', 4, 2)` rodeado de zombis.
 
-### TAREA 4.2: Zombis comen y Cortacésped
-* **Objetivo:** Daño a las plantas y defensa final.
+### TAREA 4.2: Director de Hordas y Cortacésped
+* **Rama:** `feat/tarea-4.2-hordas-cortacesped`
+* **Objetivo:** Timings exactos de oleadas y defensa final.
 * **Especificaciones:**
-  - Si el Zombi choca con una Planta: detener movimiento, pasar a estado `eat`, restar HP a la planta. La planta debe parpadear en rojo (`source-atop`).
-  - Si la planta muere, limpiar el `gridState` y el Zombi vuelve a `walk`.
-  - Si el zombi toca el radio de activación de un `Lawnmower`, el cortacésped se activa, viaja a la derecha, mata al zombi instantáneamente soltando chispas metálicas.
-* **Dummy Trigger:** Una fila con un zombi caminando, una nuez en medio de su camino, y un cortacésped en el borde izquierdo.
-
----
-
-## 📦 LOTE 5: EL GAME DIRECTOR (Ejecución Paralela Segura)
-
-### TAREA 5.1: Ciclo de Plantación Real
-* **Objetivo:** Integrar la UI del ratón con la colocación definitiva en el mapa.
-* **Especificaciones:**
-  - Evento `mousedown`: Si hay `selectedSeed` y la celda está libre (`gridState == null`), verificar si hay suficientes soles (`sunAmount >= cost`).
-  - Si es válido: descontar costo, instanciar `Plant`, bloquear `gridState`, generar partículas de tierra marrón y un `FloatingText` rojo indicando el gasto (ej. "-50").
-* **Dummy Trigger:** Ninguno, el flujo natural de juego debe funcionar (plantar gastando recursos).
-
-### TAREA 5.2: Sistema de Hordas y Timings (Eventos basados en Frames)
-* **Objetivo:** Controlar el flujo de la partida y los eventos guionizados.
-* **Especificaciones:**
-  - Usar un array `pendingZombies` como cola de espera.
-  - Al llegar a `horde1Threshold` (ej. 20 zombis) o `horde2Threshold` (ej. 38 zombis):
-    1. Pausar el spawn normal temporalmente.
-    2. Mostrar texto "¡GRAN HORDA DE ZOMBIS!" en pantalla grande, centrado y parpadeando en rojo.
-    3. Reproducir audio de horda.
-    4. Esperar exactamente 240 frames (4 segundos).
-    5. Inyectar múltiples zombis en el array `pendingZombies` para que aparezcan de golpe.
-  - La música de fondo (BGM) debe iniciar automáticamente 60 frames (1 seg) antes del primer zombi.
-* **Dummy Trigger:** Ajustar temporalmente los umbrales para que el nivel total tenga 5 zombis y la primera horda ocurra al generar el zombi número 2, así el evento de "Gran Horda" se dispara a los pocos segundos de testear.
+  - Al llegar a `horde1Threshold` o `horde2Threshold`, mostrar "¡GRAN HORDA DE ZOMBIS!", pausar spawn durante 240 frames (`hordeDelayTimer`), y cargar zombis en `pendingZombies`.
+  - Clase `Lawnmower`: Al chocar con zombi en la parte izquierda, activa `audio.play('lawnmower')`, avanza rápido y causa daño 9999 (tipo 'lawnmower') con chispas metálicas.
+* **Dummy Trigger (Caja 4.2):** En la configuración, cambia temporalmente `horde1Threshold: 2`.

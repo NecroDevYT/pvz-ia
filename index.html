@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PvZ Horror Remake</title>
+    <title>Plants vs. Zombies - IA Agents</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #000;
+            background-color: #333;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -17,240 +17,315 @@
         }
         canvas {
             max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+            max-height: 100vh;
+            display: block;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="1636" height="1332"></canvas>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+<canvas id="gameCanvas" width="1636" height="1332"></canvas>
 
-        // Configuración
-        const CONFIG = {
-            grid: {
-                startX: 90,
-                startY: 280,
-                endX: 1577,
-                endY: 1260,
-                cols: 9,
-                rows: 5
-            },
-            ui: {
-                seedBarPos: { x: 10, y: 10 },
-                sunRange: { start: 10, end: 200 },
-                seedRange: { start: 200, end: 1110 },
-                shovelRange: { start: 1110, end: 1237 },
-                text: {
-                    sunY: 195,
-                    sunSize: 40,
-                    seedCostY: 183,
-                    seedCostSize: 25
-                },
-                positions: {
-                    sunIconY: 0,
-                    shovelY: 0,
-                    seedPacketY: 20,
-                    seedImageY: 0
-                }
-            },
-            lawnmower: {
-                x: -70
-            }
-        };
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-        // Estado del juego
-        const state = {
-            suns: 50,
-            seeds: [
-                { name: 'girasol', image: 'semilla de girasol', cost: 50 },
-                { name: 'lanzaguisantes', image: 'semilla de lanza guisantes', cost: 100 },
-                { name: 'nuez', image: 'semilla de nuez', cost: 50 },
-                { name: 'cereza', image: 'semilla de cereza', cost: 150 }
-            ]
-        };
+    // Configuración de la Grid
+    const GRID_START_X = 90;
+    const GRID_START_Y = 280;
+    const GRID_END_X = 1577;
+    const GRID_END_Y = 1260;
+    const COLS = 9;
+    const ROWS = 5;
+    const CELL_WIDTH = (GRID_END_X - GRID_START_X) / COLS;
+    const CELL_HEIGHT = (GRID_END_Y - GRID_START_Y) / ROWS;
+    
+    // Variables Globales del Motor
+    let frames = 0;
+    let isPaused = false;
+    let isDebug = false;
+    let mouseX = 0;
+    let mouseY = 0;
+    
+    // Arrays de Entidades
+    let suns = [];
+    let plants = [];
+    let zombies = [];
+    let peas = [];
+    let particles = [];
+    let floatingTexts = [];
+    const lawnmowers = [];
+    
+    // Sistema de Hordas
+    const LEVEL_CONFIG = { totalZombies: 40, horde1Threshold: 20, horde2Threshold: 38, baseSpawnRate: 350 };
+    let zombiesSpawned = 0;
 
-        // Recursos
-        const resources = {
-            images: {},
-            toLoad: [
-                { id: 'background', src: 'recursos/background.png' },
-                { id: 'barra_semillas', src: 'recursos/barra de semillas.png' },
-                { id: 'sol_ui', src: 'recursos/sol.png' },
-                { id: 'pala', src: 'recursos/pala.png' },
-                { id: 'envoltura', src: 'recursos/envoltura de semilla.png' },
-                { id: 'semilla_girasol', src: 'recursos/semilla de girasol.png' },
-                { id: 'semilla_lanza_guisantes', src: 'recursos/semilla de lanza guisantes.png' },
-                { id: 'semilla_nuez', src: 'recursos/semilla de nuez.png' },
-                { id: 'semilla_cereza', src: 'recursos/semilla de cereza.png' },
-                { id: 'cortacesped', src: 'recursos/cortacesped.png' }
-            ]
-        };
+    // Recursos
+    const imageSources = {
+        background: 'recursos/background.png',
+        barraSemillas: 'recursos/barra de semillas.png',
+        sol: 'recursos/sol.png', 
+        pala: 'recursos/pala.png',
+        envoltura: 'recursos/envoltura de semilla.png',
+        semillaGirasol: 'recursos/semilla de girasol.png',
+        semillaGuisante: 'recursos/semilla de lanza guisantes.png',
+        semillaNuez: 'recursos/semilla de nuez.png',
+        cortacesped: 'recursos/cortacesped.png'
+    };
 
-        // Carga de recursos
-        let loadedCount = 0;
-        function loadResources() {
-            resources.toLoad.forEach(res => {
-                const img = new Image();
-                img.src = res.src;
-                img.onload = () => {
-                    loadedCount++;
-                    if (loadedCount === resources.toLoad.length) {
-                        init();
-                    }
-                };
-                resources.images[res.id] = img;
+    const images = {};
+    let imagesLoaded = 0;
+    const totalImages = Object.keys(imageSources).length;
+
+    // Datos de Semillas
+    const seeds = [
+        { name: 'girasol', imageKey: 'semillaGirasol', cost: 50, cooldown: 450, timer: 0 },
+        { name: 'guisante', imageKey: 'semillaGuisante', cost: 100, cooldown: 450, timer: 0 },
+        { name: 'nuez', imageKey: 'semillaNuez', cost: 50, cooldown: 1800, timer: 0 }
+    ];
+
+    // Estado del juego UI
+    let sunAmount = 50; 
+    const sunRange = { min: 10, max: 200 };
+    const seedRange = { min: 200, max: 1110 };
+    const shovelRange = { min: 1110, max: 1237 };
+    
+    let selectedSeed = null;
+    let isShovelActive = false;
+    let gridState = Array.from({ length: COLS }, () => Array(ROWS).fill(null));
+
+    // ==========================================
+    // 1. CLASES DE ENTIDADES (Agentes inyectan aquí)
+    // ==========================================
+    
+    // --- [INICIO_ZONA_CLASE_SUN_1.1] ---
+    // --- [FIN_ZONA_CLASE_SUN_1.1] ---
+
+    // --- [INICIO_ZONA_CLASE_PEA_2.2] ---
+    // --- [FIN_ZONA_CLASE_PEA_2.2] ---
+
+    // --- [INICIO_ZONA_CLASE_ZOMBIE_2.1] ---
+    // --- [FIN_ZONA_CLASE_ZOMBIE_2.1] ---
+
+    // --- [INICIO_ZONA_CLASE_PLANT_1.3] ---
+    // --- [FIN_ZONA_CLASE_PLANT_1.3] ---
+
+    // ==========================================
+    // 2. INPUTS Y EVENTOS
+    // ==========================================
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (isPaused) return;
+
+        // --- [INICIO_ZONA_CLICK_SOLES_1.1] ---
+        // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
+
+        // --- [INICIO_ZONA_CLICK_PALA_3.1] ---
+        // --- [FIN_ZONA_CLICK_PALA_3.1] ---
+
+        // --- [INICIO_ZONA_CLICK_PLANTAR_1.3] ---
+        // --- [FIN_ZONA_CLICK_PLANTAR_1.3] ---
+
+        // --- [INICIO_ZONA_CLICK_SEMILLAS_1.2] ---
+        // --- [FIN_ZONA_CLICK_SEMILLAS_1.2] ---
+    });
+
+    window.addEventListener('keydown', (e) => {
+        // --- [INICIO_ZONA_TECLAS_DEBUG_3.2] ---
+        // --- [FIN_ZONA_TECLAS_DEBUG_3.2] ---
+    });
+
+    // ==========================================
+    // 3. INICIALIZACIÓN
+    // ==========================================
+    function init() {
+        for (let i = 0; i < ROWS; i++) {
+            lawnmowers.push({
+                x: -70,
+                y: GRID_START_Y + (i * CELL_HEIGHT) + (CELL_HEIGHT / 2) - 30,
+                row: i,
+                active: false
             });
         }
+        
+        loadImages();
+    }
 
-        function init() {
-            console.log("Recursos cargados. Iniciando...");
-            loop();
-        }
-
-        function loop() {
-            render();
-            requestAnimationFrame(loop);
-        }
-
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 1. Background
-            ctx.drawImage(resources.images.background, 0, 0);
-
-            // 2. Grid (Lineas rojas)
-            drawGrid();
-
-            // 3. Cortacesped
-            drawLawnmowers();
-
-            // 4. Barra de semillas y UI
-            drawUI();
-        }
-
-        function drawGrid() {
-            ctx.save();
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-
-            const g = CONFIG.grid;
-            const width = g.endX - g.startX;
-            const height = g.endY - g.startY;
-            const cellW = width / g.cols;
-            const cellH = height / g.rows;
-
-            // Dibujar rectángulo exterior
-            // ctx.strokeRect(g.startX, g.startY, width, height);
-
-            // Lineas verticales
-            for (let i = 0; i <= g.cols; i++) {
-                const x = g.startX + i * cellW;
-                ctx.beginPath();
-                ctx.moveTo(x, g.startY);
-                ctx.lineTo(x, g.endY);
-                ctx.stroke();
-            }
-
-            // Lineas horizontales
-            for (let i = 0; i <= g.rows; i++) {
-                const y = g.startY + i * cellH;
-                ctx.beginPath();
-                ctx.moveTo(g.startX, y);
-                ctx.lineTo(g.endX, y);
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-
-        function drawLawnmowers() {
-            const g = CONFIG.grid;
-            const height = g.endY - g.startY;
-            const cellH = height / g.rows;
-            const img = resources.images.cortacesped;
-
-            for (let i = 0; i < g.rows; i++) {
-                // Centrar verticalmente en la fila
-                const rowCenterY = g.startY + i * cellH + (cellH / 2);
-                // Ajustar Y para que el centro de la imagen coincida con el centro de la fila?
-                // El prompt dice: "Los hitbox estarán en el centro de las animaciones."
-                // Pero para dibujo estático, usualmente dibujamos top-left de la imagen.
-                // Asumiremos que se dibuja centrado verticalmente.
-                const y = rowCenterY - (img.height / 2); 
-                
-                ctx.drawImage(img, CONFIG.lawnmower.x, y);
-            }
-        }
-
-        function drawUI() {
-            const ui = CONFIG.ui;
-            
-            // Barra de semillas (fondo)
-            ctx.drawImage(resources.images.barra_semillas, ui.seedBarPos.x, ui.seedBarPos.y);
-
-            // Sol UI
-            const sunCenter = (ui.sunRange.start + ui.sunRange.end) / 2;
-            const sunImg = resources.images.sol_ui;
-            // "Las imagenes de 'sol' y 'pala' de la barra de semillas tendrán una posición en 'y' de 0."
-            ctx.drawImage(sunImg, sunCenter - (sunImg.width / 2), ui.positions.sunIconY);
-
-            // Texto Soles
-            ctx.fillStyle = 'black'; // Asumo negro o visible
-            ctx.font = `${ui.text.sunSize}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText(state.suns, sunCenter, ui.text.sunY);
-
-            // Semillas
-            let currentX = ui.seedRange.start;
-            const envImg = resources.images.envoltura;
-            
-            state.seeds.forEach(seed => {
-                // Envoltura
-                // "Las semillas que estaran apiladas a la izquierda de su rango."
-                // "Ancho de la entidad semilla será el ancho de la envoltura de semilla."
-                
-                // Dibujar envoltura
-                ctx.drawImage(envImg, currentX, ui.positions.seedPacketY);
-                
-                // Dibujar imagen de la planta
-                // "Las imagenes de semilla tendrán una altura de 0."
-                let plantImg;
-                if(seed.name === 'girasol') plantImg = resources.images.semilla_girasol;
-                else if(seed.name === 'lanzaguisantes') plantImg = resources.images.semilla_lanza_guisantes;
-                else if(seed.name === 'nuez') plantImg = resources.images.semilla_nuez;
-                else if(seed.name === 'cereza') plantImg = resources.images.semilla_cereza;
-
-                if (plantImg) {
-                    // Centrar horizontalmente en la envoltura
-                    const centerX = currentX + (envImg.width / 2);
-                    const drawX = centerX - (plantImg.width / 2);
-                    ctx.drawImage(plantImg, drawX, ui.positions.seedImageY);
+    function loadImages() {
+        for (let key in imageSources) {
+            const img = new Image();
+            img.src = imageSources[key];
+            img.onload = () => {
+                imagesLoaded++;
+                if (imagesLoaded === totalImages) {
+                    console.log('Todas las imágenes cargadas. Iniciando juego.');
+                    initGame();
                 }
+            };
+            img.onerror = (e) => console.error('Error cargando imagen:', key, e);
+            images[key] = img;
+        }
+    }
 
-                // Costo
+    function initGame() {
+        // === [TRIGGER_TAREA_1.1] ===
+        // === [FIN_TRIGGER_TAREA_1.1] ===
+
+        // === [TRIGGER_TAREA_1.3] ===
+        // === [FIN_TRIGGER_TAREA_1.3] ===
+
+        // === [TRIGGER_TAREA_2.1] ===
+        // === [FIN_TRIGGER_TAREA_2.1] ===
+
+        // === [TRIGGER_TAREA_2.2] ===
+        // === [FIN_TRIGGER_TAREA_2.2] ===
+
+        // === [TRIGGER_TAREA_3.2] ===
+        // === [FIN_TRIGGER_TAREA_3.2] ===
+
+        // === [TRIGGER_TAREA_4.1] ===
+        // === [FIN_TRIGGER_TAREA_4.1] ===
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // ==========================================
+    // 4. LÓGICA PRINCIPAL (UPDATE)
+    // ==========================================
+    function checkCollisions() {
+        // --- [INICIO_ZONA_COLISIONES_2.3] ---
+        // --- [FIN_ZONA_COLISIONES_2.3] ---
+    }
+
+    function updateGame() {
+        // --- [INICIO_ZONA_UPDATE_ENTIDADES] ---
+        // --- [FIN_ZONA_UPDATE_ENTIDADES] ---
+
+        // === [TRIGGER_TAREA_3.3] ===
+        // === [FIN_TRIGGER_TAREA_3.3] ===
+
+        // --- [INICIO_ZONA_SPAWN_NORMAL_2.1] ---
+        // --- [FIN_ZONA_SPAWN_NORMAL_2.1] ---
+
+        // --- [INICIO_ZONA_SPAWN_HORDAS_4.2] ---
+        // --- [FIN_ZONA_SPAWN_HORDAS_4.2] ---
+
+        checkCollisions();
+        frames++;
+    }
+
+    // ==========================================
+    // 5. RENDERIZADO PRINCIPAL (DRAW)
+    // ==========================================
+    function gameLoop() {
+        if (!isPaused) updateGame();
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (images.background) ctx.drawImage(images.background, 0, 0);
+
+        drawGrid();
+
+        // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
+        // --- [FIN_ZONA_DRAW_ENTIDADES] ---
+
+        drawLawnmowers();
+
+        // --- [INICIO_ZONA_DRAW_FANTASMA_1.2] ---
+        // --- [FIN_ZONA_DRAW_FANTASMA_1.2] ---
+
+        drawUI();
+
+        // --- [INICIO_ZONA_DRAW_COOLDOWN_3.1] ---
+        // --- [FIN_ZONA_DRAW_COOLDOWN_3.1] ---
+
+        // --- [INICIO_ZONA_DRAW_PROGRESO_3.3] ---
+        // --- [FIN_ZONA_DRAW_PROGRESO_3.3] ---
+
+        // --- [INICIO_ZONA_DRAW_DEBUG_3.2] ---
+        // --- [FIN_ZONA_DRAW_DEBUG_3.2] ---
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function drawGrid() {
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        for (let i = 0; i <= COLS; i++) {
+            const x = GRID_START_X + (i * CELL_WIDTH);
+            ctx.moveTo(x, GRID_START_Y);
+            ctx.lineTo(x, GRID_END_Y);
+        }
+        for (let i = 0; i <= ROWS; i++) {
+            const y = GRID_START_Y + (i * CELL_HEIGHT);
+            ctx.moveTo(GRID_START_X, y);
+            ctx.lineTo(GRID_END_X, y);
+        }
+        ctx.stroke();
+    }
+
+    function drawUI() {
+        if (images.barraSemillas) ctx.drawImage(images.barraSemillas, 10, 10);
+
+        const sunCenterX = (sunRange.min + sunRange.max) / 2;
+        if (images.sol) {
+            const solX = sunCenterX - (images.sol.width / 2);
+            ctx.drawImage(images.sol, solX, 0);
+        }
+        
+        ctx.font = '40px Arial';
+        ctx.fillStyle = 'black';
+        ctx.textAlign = 'center';
+        ctx.fillText(sunAmount, sunCenterX, 195);
+
+        const shovelCenterX = (shovelRange.min + shovelRange.max) / 2;
+        if (images.pala) {
+            const palaX = shovelCenterX - (images.pala.width / 2);
+            ctx.drawImage(images.pala, palaX, 0);
+        }
+
+        let currentSeedX = seedRange.min;
+        
+        seeds.forEach(seed => {
+            const envolturaImg = images.envoltura;
+            const plantaImg = images[seed.imageKey];
+            
+            if (envolturaImg && plantaImg) {
+                const seedWidth = envolturaImg.width; 
+                ctx.drawImage(envolturaImg, currentSeedX, 20);
+                
+                const plantaX = currentSeedX + (seedWidth / 2) - (plantaImg.width / 2);
+                ctx.drawImage(plantaImg, plantaX, 0);
+                
+                ctx.font = '25px Arial';
                 ctx.fillStyle = 'black';
-                ctx.font = `${ui.text.seedCostSize}px Arial`;
                 ctx.textAlign = 'center';
-                // Centrado en la envoltura
-                const centerX = currentX + (envImg.width / 2);
-                ctx.fillText(seed.cost, centerX, ui.text.seedCostY);
+                const textX = currentSeedX + (seedWidth / 2);
+                ctx.fillText(seed.cost, textX, 183);
 
-                // Avanzar X
-                currentX += envImg.width;
-            });
+                currentSeedX += seedWidth;
+            }
+        });
+    }
 
-            // Pala
-            const shovelCenter = (ui.shovelRange.start + ui.shovelRange.end) / 2;
-            const shovelImg = resources.images.pala;
-            ctx.drawImage(shovelImg, shovelCenter - (shovelImg.width / 2), ui.positions.shovelY);
-        }
+    function drawLawnmowers() {
+        lawnmowers.forEach(mower => {
+            if (images.cortacesped) {
+                const drawY = GRID_START_Y + (mower.row * CELL_HEIGHT) + (CELL_HEIGHT/2) - (images.cortacesped.height / 2);
+                ctx.drawImage(images.cortacesped, mower.x, drawY);
+            }
+        });
+    }
 
-        // Iniciar
-        loadResources();
+    init();
 
-    </script>
+</script>
 </body>
 </html>
