@@ -106,6 +106,75 @@
             });
         }
 
+        // --- [INICIO TAREA 1.1] ---
+        // Motor de Audio (AudioManager)
+        class AudioManager {
+            constructor() {
+                this.sounds = {};
+                this.soundList = [
+                    'Los zombis se acercan inicio.mp3',
+                    'choque guisante.mp3',
+                    'cereza explota.mp3',
+                    'zombi muere.mp3',
+                    'plantar.mp3',
+                    'recolectar sol.mp3',
+                    'cortacesped.mp3',
+                    'horda.mp3',
+                    'musica fondo.mp3'
+                ];
+                this.preloadSounds();
+            }
+
+            preloadSounds() {
+                this.soundList.forEach(soundName => {
+                    const audio = new Audio();
+                    // Usar encodeURIComponent para manejar nombres con espacios
+                    const encodedName = encodeURIComponent(soundName);
+                    audio.src = `recursos/sonidos/${encodedName}`;
+                    audio.preload = 'auto';
+                    // Guardar con el nombre original (sin espacios codificados) como clave
+                    this.sounds[soundName] = audio;
+                });
+            }
+
+            play(name, volume = 1.0) {
+                if (!this.sounds[name]) {
+                    console.warn(`Sonido no encontrado: ${name}`);
+                    return;
+                }
+                
+                // Usar cloneNode() para permitir reproducción simultánea
+                const audioClone = this.sounds[name].cloneNode();
+                audioClone.volume = Math.max(0, Math.min(1, volume)); // Clamp entre 0 y 1
+                
+                // Reproducir y limpiar cuando termine
+                audioClone.play().catch(err => {
+                    // Algunos navegadores bloquean autoplay, ignorar error
+                    console.log('Audio bloqueado por el navegador:', err.message);
+                });
+                
+                // Liberar memoria cuando termine
+                audioClone.addEventListener('ended', () => {
+                    audioClone.remove();
+                });
+            }
+        }
+
+        // Instancia global del AudioManager
+        const audioManager = new AudioManager();
+
+        // DUMMY TRIGGER PARA TESTING
+        // Reproducir "Los zombis se acercan inicio.mp3" en el primer clic
+        let firstClick = true;
+        window.addEventListener('click', () => {
+            if (firstClick) {
+                firstClick = false;
+                audioManager.play('Los zombis se acercan inicio.mp3', 0.7);
+                console.log('🎵 Audio de prueba reproducido: Los zombis se acercan inicio.mp3');
+            }
+        });
+        // --- [FIN TAREA 1.1] ---
+
         function init() {
             console.log("Recursos cargados. Iniciando...");
             loop();
