@@ -1,0 +1,569 @@
+./background.png
+./barra de progreso
+./barra de progreso/bandera.png
+./barra de progreso/barra.png
+./barra de progreso/cabeza de zombi.png
+./barra de semillas.png
+./cereza
+./cereza/cereza00.png
+./cereza/cereza01.png
+./cereza/cereza02.png
+./cereza/cereza03.png
+./cereza/cereza04.png
+./cereza/cereza05.png
+./cereza/cereza06.png
+./cereza/cereza07.png
+./cereza/cereza08.png
+./cereza/cereza09.png
+./cereza/cereza10.png
+./cereza/cereza11.png
+./cereza/cereza12.png
+./cereza/cereza13.png
+./cereza/cereza14.png
+./cereza/cereza15.png
+./cereza/cereza16.png
+./cereza/cereza17.png
+./cereza/cereza18.png
+./cereza/cereza19.png
+./cereza/cereza20.png
+./cereza/cereza21.png
+./cereza/cereza22.png
+./cereza/cereza23.png
+./cereza/cereza24.png
+./cereza/cereza25.png
+./cereza/cereza26.png
+./cereza/cereza27.png
+./cereza/cereza28.png
+./cereza/cereza29.png
+./cereza/cereza30.png
+./cereza/cereza31.png
+./cereza/cereza32.png
+./cereza/cereza33.png
+./cereza/cereza34.png
+./cereza/cereza35.png
+./cereza/cereza36.png
+./cereza/cereza37.png
+./cereza/cereza38.png
+./cereza/cereza39.png
+./cereza/cereza40.png
+./cereza/cereza41.png
+./cereza/cereza42.png
+./cereza/cereza43.png
+./cereza/cereza44.png
+./cereza/cereza45.png
+./cereza/cereza46.png
+./cereza/cereza47.png
+./cereza/cereza48.png
+./cereza/cereza49.png
+./cereza/cereza50.png
+./cereza/cereza51.png
+./cereza/cereza52.png
+./cereza/cereza53.png
+./cereza/cereza54.png
+./cereza/cereza55.png
+./cereza/cereza56.png
+./cereza/cereza57.png
+./cereza/cereza58.png
+./cereza/cereza59.png
+./cortacesped.png
+./envoltura de semilla.png
+./girasol perturbador
+./girasol perturbador/girasol perturbador00.png
+./girasol perturbador/girasol perturbador01.png
+./girasol perturbador/girasol perturbador02.png
+./girasol perturbador/girasol perturbador03.png
+./girasol perturbador/girasol perturbador04.png
+./girasol perturbador/girasol perturbador05.png
+./girasol perturbador/girasol perturbador06.png
+./girasol perturbador/girasol perturbador07.png
+./girasol perturbador/girasol perturbador08.png
+./girasol perturbador/girasol perturbador09.png
+./girasol perturbador/girasol perturbador10.png
+./girasol perturbador/girasol perturbador11.png
+./girasol perturbador/girasol perturbador12.png
+./girasol perturbador/girasol perturbador13.png
+./girasol perturbador/girasol perturbador14.png
+./girasol perturbador/girasol perturbador15.png
+./girasol perturbador/girasol perturbador16.png
+./girasol perturbador/girasol perturbador17.png
+./girasol perturbador/girasol perturbador18.png
+./girasol perturbador/girasol perturbador19.png
+./girasol perturbador/girasol perturbador20.png
+./girasol perturbador/girasol perturbador21.png
+./girasol perturbador/girasol perturbador22.png
+./girasol perturbador/girasol perturbador23.png
+./girasol perturbador/girasol perturbador24.png
+./girasol perturbador/girasol perturbador25.png
+./girasol perturbador/girasol perturbador26.png
+./girasol perturbador/girasol perturbador27.png
+./girasol perturbador/girasol perturbador28.png
+./girasol perturbador/girasol perturbador29.png
+./girasol perturbador/girasol perturbador30.png
+./girasol perturbador/girasol perturbador31.png
+./girasol perturbador/girasol perturbador32.png
+./girasol perturbador/girasol perturbador33.png
+./girasol perturbador/girasol perturbador34.png
+./girasol perturbador/girasol perturbador35.png
+./girasol perturbador/girasol perturbador36.png
+./girasol perturbador/girasol perturbador37.png
+./girasol perturbador/girasol perturbador38.png
+./girasol perturbador/girasol perturbador39.png
+./girasol perturbador/girasol perturbador40.png
+./girasol perturbador/girasol perturbador41.png
+./girasol perturbador/girasol perturbador42.png
+./girasol perturbador/girasol perturbador43.png
+./girasol perturbador/girasol perturbador44.png
+./girasol perturbador/girasol perturbador45.png
+./girasol perturbador/girasol perturbador46.png
+./girasol perturbador/girasol perturbador47.png
+./girasol perturbador/girasol perturbador48.png
+./girasol perturbador/girasol perturbador49.png
+./girasol perturbador/girasol perturbador50.png
+./girasol perturbador/girasol perturbador51.png
+./girasol perturbador/girasol perturbador52.png
+./girasol perturbador/girasol perturbador53.png
+./girasol perturbador/girasol perturbador54.png
+./girasol perturbador/girasol perturbador55.png
+./girasol perturbador/girasol perturbador56.png
+./girasol perturbador/girasol perturbador57.png
+./guisante.png
+./lanza guisantes ataque
+./lanza guisantes ataque/lanza guisantes ataque00.png
+./lanza guisantes ataque/lanza guisantes ataque01.png
+./lanza guisantes ataque/lanza guisantes ataque02.png
+./lanza guisantes ataque/lanza guisantes ataque03.png
+./lanza guisantes ataque/lanza guisantes ataque04.png
+./lanza guisantes ataque/lanza guisantes ataque05.png
+./lanza guisantes ataque/lanza guisantes ataque06.png
+./lanza guisantes ataque/lanza guisantes ataque07.png
+./lanza guisantes ataque/lanza guisantes ataque08.png
+./lanza guisantes ataque/lanza guisantes ataque09.png
+./lanza guisantes ataque/lanza guisantes ataque10.png
+./lanza guisantes ataque/lanza guisantes ataque11.png
+./lanza guisantes ataque/lanza guisantes ataque12.png
+./lanza guisantes ataque/lanza guisantes ataque13.png
+./lanza guisantes ataque/lanza guisantes ataque14.png
+./lanza guisantes ataque/lanza guisantes ataque15.png
+./lanza guisantes ataque/lanza guisantes ataque16.png
+./lanza guisantes ataque/lanza guisantes ataque17.png
+./lanza guisantes ataque/lanza guisantes ataque18.png
+./lanza guisantes ataque/lanza guisantes ataque19.png
+./lanza guisantes ataque/lanza guisantes ataque20.png
+./lanza guisantes ataque/lanza guisantes ataque21.png
+./lanza guisantes ataque/lanza guisantes ataque22.png
+./lanza guisantes ataque/lanza guisantes ataque23.png
+./lanza guisantes ataque/lanza guisantes ataque24.png
+./lanza guisantes ataque/lanza guisantes ataque25.png
+./lanza guisantes ataque/lanza guisantes ataque26.png
+./lanza guisantes ataque/lanza guisantes ataque27.png
+./lanza guisantes ataque/lanza guisantes ataque28.png
+./lanza guisantes ataque/lanza guisantes ataque29.png
+./lanza guisantes ataque/lanza guisantes ataque30.png
+./lanza guisantes ataque/lanza guisantes ataque31.png
+./lanza guisantes ataque/lanza guisantes ataque32.png
+./lanza guisantes ataque/lanza guisantes ataque33.png
+./lanza guisantes ataque/lanza guisantes ataque34.png
+./lanza guisantes ataque/lanza guisantes ataque35.png
+./lanza guisantes ataque/lanza guisantes ataque36.png
+./lanza guisantes ataque/lanza guisantes ataque37.png
+./lanza guisantes ataque/lanza guisantes ataque38.png
+./lanza guisantes ataque/lanza guisantes ataque39.png
+./lanza guisantes ataque/lanza guisantes ataque40.png
+./lanza guisantes ataque/lanza guisantes ataque41.png
+./lanza guisantes ataque/lanza guisantes ataque42.png
+./lanza guisantes ataque/lanza guisantes ataque43.png
+./lanza guisantes ataque/lanza guisantes ataque44.png
+./lanza guisantes ataque/lanza guisantes ataque45.png
+./lg reposo perturbador
+./lg reposo perturbador/lg reposo perturbador00.png
+./lg reposo perturbador/lg reposo perturbador01.png
+./lg reposo perturbador/lg reposo perturbador02.png
+./lg reposo perturbador/lg reposo perturbador03.png
+./lg reposo perturbador/lg reposo perturbador04.png
+./lg reposo perturbador/lg reposo perturbador05.png
+./lg reposo perturbador/lg reposo perturbador06.png
+./lg reposo perturbador/lg reposo perturbador07.png
+./lg reposo perturbador/lg reposo perturbador08.png
+./lg reposo perturbador/lg reposo perturbador09.png
+./lg reposo perturbador/lg reposo perturbador10.png
+./lg reposo perturbador/lg reposo perturbador11.png
+./lg reposo perturbador/lg reposo perturbador12.png
+./lg reposo perturbador/lg reposo perturbador13.png
+./lg reposo perturbador/lg reposo perturbador14.png
+./lg reposo perturbador/lg reposo perturbador15.png
+./lg reposo perturbador/lg reposo perturbador16.png
+./lg reposo perturbador/lg reposo perturbador17.png
+./lg reposo perturbador/lg reposo perturbador18.png
+./lg reposo perturbador/lg reposo perturbador19.png
+./lg reposo perturbador/lg reposo perturbador20.png
+./lg reposo perturbador/lg reposo perturbador21.png
+./lg reposo perturbador/lg reposo perturbador22.png
+./lg reposo perturbador/lg reposo perturbador23.png
+./lg reposo perturbador/lg reposo perturbador24.png
+./lg reposo perturbador/lg reposo perturbador25.png
+./lg reposo perturbador/lg reposo perturbador26.png
+./lg reposo perturbador/lg reposo perturbador27.png
+./lg reposo perturbador/lg reposo perturbador28.png
+./lg reposo perturbador/lg reposo perturbador29.png
+./lg reposo perturbador/lg reposo perturbador30.png
+./nuez
+./nuez/nuez0.png
+./pala.png
+./semilla de cereza.png
+./semilla de girasol.png
+./semilla de lanza guisantes.png
+./semilla de nuez.png
+./sol
+./sol/sol000.png
+./sol/sol001.png
+./sol/sol002.png
+./sol/sol003.png
+./sol/sol004.png
+./sol/sol005.png
+./sol/sol006.png
+./sol/sol007.png
+./sol/sol008.png
+./sol/sol009.png
+./sol/sol010.png
+./sol/sol011.png
+./sol/sol012.png
+./sol/sol013.png
+./sol/sol014.png
+./sol/sol015.png
+./sol/sol016.png
+./sol/sol017.png
+./sol/sol018.png
+./sol/sol019.png
+./sol/sol020.png
+./sol/sol021.png
+./sol/sol022.png
+./sol/sol023.png
+./sol/sol024.png
+./sol/sol025.png
+./sol/sol026.png
+./sol/sol027.png
+./sol/sol028.png
+./sol/sol029.png
+./sol/sol030.png
+./sol/sol031.png
+./sol/sol032.png
+./sol/sol033.png
+./sol/sol034.png
+./sol/sol035.png
+./sol/sol036.png
+./sol/sol037.png
+./sol/sol038.png
+./sol/sol039.png
+./sol/sol040.png
+./sol/sol041.png
+./sol/sol042.png
+./sol/sol043.png
+./sol/sol044.png
+./sol/sol045.png
+./sol/sol046.png
+./sol/sol047.png
+./sol/sol048.png
+./sol/sol049.png
+./sol/sol050.png
+./sol/sol051.png
+./sol/sol052.png
+./sol/sol053.png
+./sol/sol054.png
+./sol/sol055.png
+./sol/sol056.png
+./sol/sol057.png
+./sol/sol058.png
+./sol/sol059.png
+./sol/sol060.png
+./sol/sol061.png
+./sol/sol062.png
+./sol/sol063.png
+./sol/sol064.png
+./sol/sol065.png
+./sol/sol066.png
+./sol/sol067.png
+./sol/sol068.png
+./sol/sol069.png
+./sol/sol070.png
+./sol/sol071.png
+./sol/sol072.png
+./sol/sol073.png
+./sol/sol074.png
+./sol/sol075.png
+./sol/sol076.png
+./sol/sol077.png
+./sol/sol078.png
+./sol/sol079.png
+./sol/sol080.png
+./sol/sol081.png
+./sol/sol082.png
+./sol/sol083.png
+./sol/sol084.png
+./sol/sol085.png
+./sol/sol086.png
+./sol/sol087.png
+./sol/sol088.png
+./sol/sol089.png
+./sol/sol090.png
+./sol/sol091.png
+./sol/sol092.png
+./sol/sol093.png
+./sol/sol094.png
+./sol/sol095.png
+./sol/sol096.png
+./sol/sol097.png
+./sol/sol098.png
+./sol/sol099.png
+./sol/sol100.png
+./sol/sol101.png
+./sol/sol102.png
+./sol/sol103.png
+./sol/sol104.png
+./sol/sol105.png
+./sol/sol106.png
+./sol/sol107.png
+./sol/sol108.png
+./sol/sol109.png
+./sol/sol110.png
+./sol/sol111.png
+./sol/sol112.png
+./sol/sol113.png
+./sol/sol114.png
+./sol/sol115.png
+./sol/sol116.png
+./sol/sol117.png
+./sol/sol118.png
+./sol/sol119.png
+./sol/sol120.png
+./sol/sol121.png
+./sol/sol122.png
+./sol/sol123.png
+./sol/sol124.png
+./sol/sol125.png
+./sol/sol126.png
+./sol/sol127.png
+./sol/sol128.png
+./sol/sol129.png
+./sol/sol130.png
+./sol/sol131.png
+./sol/sol132.png
+./sol/sol133.png
+./sol/sol134.png
+./sol/sol135.png
+./sol/sol136.png
+./sol/sol137.png
+./sol/sol138.png
+./sol/sol139.png
+./sol/sol140.png
+./sol/sol141.png
+./sol/sol142.png
+./sol/sol143.png
+./sol/sol144.png
+./sol/sol145.png
+./sol/sol146.png
+./sol/sol147.png
+./sol/sol148.png
+./sol/sol149.png
+./sol/sol150.png
+./sol/sol151.png
+./sol/sol152.png
+./sol/sol153.png
+./sol/sol154.png
+./sol/sol155.png
+./sol/sol156.png
+./sol/sol157.png
+./sol/sol158.png
+./sol/sol159.png
+./sol/sol160.png
+./sol/sol161.png
+./sol/sol162.png
+./sol/sol163.png
+./sol/sol164.png
+./sol/sol165.png
+./sol/sol166.png
+./sol/sol167.png
+./sol/sol168.png
+./sol/sol169.png
+./sol/sol170.png
+./sol/sol171.png
+./sol/sol172.png
+./sol/sol173.png
+./sol/sol174.png
+./sol/sol175.png
+./sol/sol176.png
+./sol/sol177.png
+./sol/sol178.png
+./sol/sol179.png
+./sol/sol180.png
+./sol/sol181.png
+./sol/sol182.png
+./sol/sol183.png
+./sol/sol184.png
+./sol/sol185.png
+./sol/sol186.png
+./sol/sol187.png
+./sol/sol188.png
+./sol/sol189.png
+./sol/sol190.png
+./sol/sol191.png
+./sol.png
+./sonidos
+./sonidos/Clic carta.wav
+./sonidos/Colision de guisante.mp3
+./sonidos/Corta cesped.wav
+./sonidos/Escarbar.wav
+./sonidos/Explocion cereza.wav
+./sonidos/Grito al perder.wav
+./sonidos/Gruñido de zombi 1.wav
+./sonidos/Gruñido de zombi 2.wav
+./sonidos/Gruñido de zombi 3.wav
+./sonidos/Gruñido de zombi 4.wav
+./sonidos/Gruñido de zombi 5.wav
+./sonidos/Horda de zombis.mp3
+./sonidos/Los zombis se acercan inicio.mp3
+./sonidos/Musica ganar.wav
+./sonidos/Musica perder.wav
+./sonidos/Plantar.wav
+./sonidos/Recoger sol 1.wav
+./sonidos/Recoger sol 2.mp3
+./sonidos/Recoger sol 3.mp3
+./sonidos/Zombi come 1.wav
+./sonidos/Zombi come 2.wav
+./sonidos/Zombi come 3.wav
+./tu ganas.png
+./tu pierdes.png
+./zombie caminata
+./zombie caminata/zombie caminata00.png
+./zombie caminata/zombie caminata01.png
+./zombie caminata/zombie caminata02.png
+./zombie caminata/zombie caminata03.png
+./zombie caminata/zombie caminata04.png
+./zombie caminata/zombie caminata05.png
+./zombie caminata/zombie caminata06.png
+./zombie caminata/zombie caminata07.png
+./zombie caminata/zombie caminata08.png
+./zombie caminata/zombie caminata09.png
+./zombie caminata/zombie caminata10.png
+./zombie caminata/zombie caminata11.png
+./zombie caminata/zombie caminata12.png
+./zombie caminata/zombie caminata13.png
+./zombie caminata/zombie caminata14.png
+./zombie caminata/zombie caminata15.png
+./zombie caminata/zombie caminata16.png
+./zombie caminata/zombie caminata17.png
+./zombie caminata/zombie caminata18.png
+./zombie caminata/zombie caminata19.png
+./zombie caminata/zombie caminata20.png
+./zombie caminata/zombie caminata21.png
+./zombie caminata/zombie caminata22.png
+./zombie caminata/zombie caminata23.png
+./zombie caminata/zombie caminata24.png
+./zombie caminata/zombie caminata25.png
+./zombie caminata/zombie caminata26.png
+./zombie caminata/zombie caminata27.png
+./zombie caminata/zombie caminata28.png
+./zombie caminata/zombie caminata29.png
+./zombie caminata/zombie caminata30.png
+./zombie caminata/zombie caminata31.png
+./zombie caminata/zombie caminata32.png
+./zombie caminata/zombie caminata33.png
+./zombie caminata/zombie caminata34.png
+./zombie caminata/zombie caminata35.png
+./zombie caminata/zombie caminata36.png
+./zombie caminata/zombie caminata37.png
+./zombie caminata/zombie caminata38.png
+./zombie caminata/zombie caminata39.png
+./zombie caminata/zombie caminata40.png
+./zombie caminata/zombie caminata41.png
+./zombie caminata/zombie caminata42.png
+./zombie caminata/zombie caminata43.png
+./zombie caminata/zombie caminata44.png
+./zombie caminata/zombie caminata45.png
+./zombie come
+./zombie come/zombie come00.png
+./zombie come/zombie come01.png
+./zombie come/zombie come02.png
+./zombie come/zombie come03.png
+./zombie come/zombie come04.png
+./zombie come/zombie come05.png
+./zombie come/zombie come06.png
+./zombie come/zombie come07.png
+./zombie come/zombie come08.png
+./zombie come/zombie come09.png
+./zombie come/zombie come10.png
+./zombie come/zombie come11.png
+./zombie come/zombie come12.png
+./zombie come/zombie come13.png
+./zombie come/zombie come14.png
+./zombie come/zombie come15.png
+./zombie come/zombie come16.png
+./zombie come/zombie come17.png
+./zombie come/zombie come18.png
+./zombie come/zombie come19.png
+./zombie come/zombie come20.png
+./zombie come/zombie come21.png
+./zombie come/zombie come22.png
+./zombie come/zombie come23.png
+./zombie come/zombie come24.png
+./zombie come/zombie come25.png
+./zombie come/zombie come26.png
+./zombie come/zombie come27.png
+./zombie come/zombie come28.png
+./zombie come/zombie come29.png
+./zombie come/zombie come30.png
+./zombie come/zombie come31.png
+./zombie come/zombie come32.png
+./zombie come/zombie come33.png
+./zombie come/zombie come34.png
+./zombie come/zombie come35.png
+./zombie perdurbador cae
+./zombie perdurbador cae/zombie perdurbador cae00.png
+./zombie perdurbador cae/zombie perdurbador cae01.png
+./zombie perdurbador cae/zombie perdurbador cae02.png
+./zombie perdurbador cae/zombie perdurbador cae03.png
+./zombie perdurbador cae/zombie perdurbador cae04.png
+./zombie perdurbador cae/zombie perdurbador cae05.png
+./zombie perdurbador cae/zombie perdurbador cae06.png
+./zombie perdurbador cae/zombie perdurbador cae07.png
+./zombie perdurbador cae/zombie perdurbador cae08.png
+./zombie perdurbador cae/zombie perdurbador cae09.png
+./zombie perdurbador cae/zombie perdurbador cae10.png
+./zombie perdurbador cae/zombie perdurbador cae11.png
+./zombie perdurbador cae/zombie perdurbador cae12.png
+./zombie perdurbador cae/zombie perdurbador cae13.png
+./zombie perdurbador cae/zombie perdurbador cae14.png
+./zombie perdurbador cae/zombie perdurbador cae15.png
+./zombie perdurbador cae/zombie perdurbador cae16.png
+./zombie perdurbador cae/zombie perdurbador cae17.png
+./zombie perdurbador cae/zombie perdurbador cae18.png
+./zombie perdurbador cae/zombie perdurbador cae19.png
+./zombie perdurbador cae/zombie perdurbador cae20.png
+./zombie perdurbador cae/zombie perdurbador cae21.png
+./zombie perdurbador cae/zombie perdurbador cae22.png
+./zombie perdurbador cae/zombie perdurbador cae23.png
+./zombie perdurbador cae/zombie perdurbador cae24.png
+./zombie perdurbador cae/zombie perdurbador cae25.png
+./zombie perdurbador cae/zombie perdurbador cae26.png
+./zombie perdurbador cae/zombie perdurbador cae27.png
+./zombie perdurbador cae/zombie perdurbador cae28.png
+./zombie perdurbador cae/zombie perdurbador cae29.png
+./zombie perdurbador cae/zombie perdurbador cae30.png
+./zombie perdurbador cae/zombie perdurbador cae31.png
+./zombie perdurbador cae/zombie perdurbador cae32.png
+./zombie perdurbador cae/zombie perdurbador cae33.png
+./zombie perdurbador cae/zombie perdurbador cae34.png
+./zombie perdurbador cae/zombie perdurbador cae35.png
+./zombie perdurbador cae/zombie perdurbador cae36.png
+./zombie perdurbador cae/zombie perdurbador cae37.png
+./zombie perdurbador cae/zombie perdurbador cae38.png
+./zombie perdurbador cae/zombie perdurbador cae39.png
+./zombie perdurbador cae/zombie perdurbador cae40.png
+./zombie perdurbador cae/zombie perdurbador cae41.png
+./zombie perdurbador cae/zombie perdurbador cae42.png
+./zombie perdurbador cae/zombie perdurbador cae43.png
+./zombie perdurbador cae/zombie perdurbador cae44.png
+./zombie perdurbador cae/zombie perdurbador cae45.png
+./zombie perdurbador cae/zombie perdurbador cae46.png
+./zombie perdurbador cae/zombie perdurbador cae47.png
+./zombie perdurbador cae/zombie perdurbador cae48.png
+./zombie perdurbador cae/zombie perdurbador cae49.png
