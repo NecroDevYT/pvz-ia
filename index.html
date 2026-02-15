@@ -70,8 +70,147 @@
                 { name: 'lanzaguisantes', image: 'semilla de lanza guisantes', cost: 100 },
                 { name: 'nuez', image: 'semilla de nuez', cost: 50 },
                 { name: 'cereza', image: 'semilla de cereza', cost: 150 }
-            ]
+            ],
+            particles: [],
+            floatingTexts: []
         };
+
+        // --- [INICIO TAREA 1.2] Sistema de Efectos Visuales ---
+        // Clase Particle
+        class Particle {
+            constructor(x, y, color, speed, size, type) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = size;
+                this.type = type; // 'circle', 'square', 'spark'
+                this.life = 1.0; // 0 a 1
+                
+                // Velocidad inicial radial aleatoria
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+            }
+            
+            update() {
+                // Aplicar velocidad
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Gravedad
+                this.vy += 0.2;
+                
+                // Fricción del aire
+                this.vx *= 0.92;
+                this.vy *= 0.92;
+                
+                // Reducir vida
+                this.life -= 0.02;
+            }
+            
+            draw(ctx) {
+                if (this.life <= 0) return;
+                
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                
+                if (this.type === 'spark') {
+                    ctx.globalCompositeOperation = 'lighter';
+                }
+                
+                ctx.fillStyle = this.color;
+                
+                if (this.type === 'circle') {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (this.type === 'square') {
+                    ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+                } else if (this.type === 'spark') {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+            
+            isDead() {
+                return this.life <= 0;
+            }
+        }
+        
+        // Clase FloatingText
+        class FloatingText {
+            constructor(x, y, text, color, size) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.size = size;
+                this.life = 1.0; // 0 a 1
+                this.vy = -1; // Velocidad de subida
+            }
+            
+            update() {
+                this.y += this.vy;
+                this.life -= 0.015;
+            }
+            
+            draw(ctx) {
+                if (this.life <= 0) return;
+                
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.font = `bold ${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Borde negro para mejor visibilidad
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 3;
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                
+                ctx.restore();
+            }
+            
+            isDead() {
+                return this.life <= 0;
+            }
+        }
+        
+        // Función global spawnParticles
+        function spawnParticles(x, y, colors, count, speed, size, types) {
+            for (let i = 0; i < count; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const particleSpeed = speed * (0.5 + Math.random() * 0.5); // Variación de velocidad
+                const particleSize = size * (0.7 + Math.random() * 0.6); // Variación de tamaño
+                state.particles.push(new Particle(x, y, color, particleSpeed, particleSize, type));
+            }
+        }
+        
+        // Funciones de actualización y renderizado
+        function updateParticles() {
+            state.particles.forEach(p => p.update());
+            state.particles = state.particles.filter(p => !p.isDead());
+        }
+        
+        function drawParticles() {
+            state.particles.forEach(p => p.draw(ctx));
+        }
+        
+        function updateFloatingTexts() {
+            state.floatingTexts.forEach(t => t.update());
+            state.floatingTexts = state.floatingTexts.filter(t => !t.isDead());
+        }
+        
+        function drawFloatingTexts() {
+            state.floatingTexts.forEach(t => t.draw(ctx));
+        }
+        // --- [FIN TAREA 1.2] ---
 
         // Recursos
         const resources = {
@@ -108,6 +247,14 @@
 
         function init() {
             console.log("Recursos cargados. Iniciando...");
+            // DUMMY TRIGGER PARA TESTING - Task 1.2
+            canvas.addEventListener('mousedown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+                spawnParticles(x, y, ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'], 20, 5, 8, ['circle', 'square', 'spark']);
+                state.floatingTexts.push(new FloatingText(x, y, 'TEST', '#ffffff', 40));
+            });
             loop();
         }
 
@@ -128,7 +275,13 @@
             // 3. Cortacesped
             drawLawnmowers();
 
-            // 4. Barra de semillas y UI
+            // 4. Update and draw particles and floating texts (Task 1.2)
+            updateParticles();
+            drawParticles();
+            updateFloatingTexts();
+            drawFloatingTexts();
+
+            // 5. Barra de semillas y UI
             drawUI();
         }
 
