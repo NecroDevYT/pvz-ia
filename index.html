@@ -73,6 +73,107 @@
             ]
         };
 
+        // --- [INICIO TAREA 1.1] ---
+        // Motor de Audio (AudioManager)
+        class AudioManager {
+            constructor() {
+                this.sounds = {};
+                this.loaded = false;
+                this.soundList = [
+                    'Clic carta.wav',
+                    'Colision de guisante.mp3',
+                    'Corta cesped.wav',
+                    'Escarbar.wav',
+                    'Explocion cereza.wav',
+                    'Grito al perder.wav',
+                    'Gruñido de zombi 1.wav',
+                    'Gruñido de zombi 2.wav',
+                    'Gruñido de zombi 3.wav',
+                    'Gruñido de zombi 4.wav',
+                    'Gruñido de zombi 5.wav',
+                    'Horda de zombis.mp3',
+                    'Los zombis se acercan inicio.mp3',
+                    'Musica ganar.wav',
+                    'Musica perder.wav',
+                    'Plantar.wav',
+                    'Recoger sol 1.wav',
+                    'Recoger sol 2.mp3',
+                    'Recoger sol 3.mp3',
+                    'Zombi come 1.wav',
+                    'Zombi come 2.wav',
+                    'Zombi come 3.wav'
+                ];
+            }
+
+            preload() {
+                return new Promise((resolve) => {
+                    let loadedCount = 0;
+                    const total = this.soundList.length;
+
+                    this.soundList.forEach((soundName) => {
+                        const audio = new Audio();
+                        // Usar encodeURIComponent para rutas con espacios
+                        const encodedName = encodeURIComponent(soundName);
+                        audio.src = `recursos/sonidos/${encodedName}`;
+                        
+                        // Extraer nombre sin extensión para usar como clave
+                        const key = soundName.replace(/\.(mp3|wav)$/, '');
+                        this.sounds[key] = audio;
+
+                        audio.addEventListener('canplaythrough', () => {
+                            loadedCount++;
+                            if (loadedCount === total) {
+                                this.loaded = true;
+                                console.log('AudioManager: Todos los sonidos cargados');
+                                resolve();
+                            }
+                        }, { once: true });
+
+                        audio.addEventListener('error', () => {
+                            console.warn(`AudioManager: Error cargando ${soundName}`);
+                            loadedCount++;
+                            if (loadedCount === total) {
+                                this.loaded = true;
+                                resolve();
+                            }
+                        }, { once: true });
+
+                        // Forzar carga
+                        audio.load();
+                    });
+                });
+            }
+
+            play(name, volume = 1.0) {
+                const sound = this.sounds[name];
+                if (!sound) {
+                    console.warn(`AudioManager: Sonido "${name}" no encontrado`);
+                    return null;
+                }
+                
+                // Clonar el nodo para permitir múltiples reproducciones simultáneas
+                const clone = sound.cloneNode();
+                clone.volume = Math.max(0, Math.min(1, volume));
+                clone.play().catch(e => console.warn('AudioManager: Error reproduciendo', e));
+                return clone;
+            }
+        }
+
+        // Instancia global del AudioManager
+        const audioManager = new AudioManager();
+
+        // DUMMY TRIGGER PARA TESTING
+        // Reproduce "Los zombis se acercan inicio.mp3" al primer clic
+        let audioTestTriggered = false;
+        window.addEventListener('click', () => {
+            if (!audioTestTriggered && audioManager.loaded) {
+                audioTestTriggered = true;
+                console.log('DUMMY TRIGGER: Reproduciendo "Los zombis se acercan inicio"');
+                audioManager.play('Los zombis se acercan inicio', 0.7);
+            }
+        }, { once: true });
+        // --- [FIN TAREA 1.1] ---
+
         // Recursos
         const resources = {
             images: {},
@@ -93,21 +194,29 @@
         // Carga de recursos
         let loadedCount = 0;
         function loadResources() {
-            resources.toLoad.forEach(res => {
-                const img = new Image();
-                img.src = res.src;
-                img.onload = () => {
-                    loadedCount++;
-                    if (loadedCount === resources.toLoad.length) {
-                        init();
-                    }
-                };
-                resources.images[res.id] = img;
+            // Cargar imágenes
+            const imagePromise = new Promise((resolve) => {
+                resources.toLoad.forEach(res => {
+                    const img = new Image();
+                    img.src = res.src;
+                    img.onload = () => {
+                        loadedCount++;
+                        if (loadedCount === resources.toLoad.length) {
+                            resolve();
+                        }
+                    };
+                    resources.images[res.id] = img;
+                });
+            });
+
+            // Cargar audio en paralelo con imágenes
+            Promise.all([imagePromise, audioManager.preload()]).then(() => {
+                init();
             });
         }
 
         function init() {
-            console.log("Recursos cargados. Iniciando...");
+            console.log("Recursos cargados (imágenes y audio). Iniciando...");
             loop();
         }
 
