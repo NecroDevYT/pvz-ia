@@ -308,6 +308,26 @@
         // --- [FIN_ZONA_CLICK_PLANTAR_1.3] ---
 
         // --- [INICIO_ZONA_CLICK_SEMILLAS_1.2] ---
+        // Detectar clic en semillas de la barra superior
+        if (mouseY >= 20 && mouseY <= 160) {
+            // Verificar si el clic está en el rango de semillas
+            if (mouseX >= seedRange.min && mouseX < seedRange.max) {
+                let currentSeedX = seedRange.min;
+                const envolturaWidth = images.envoltura ? images.envoltura.width : 0;
+                
+                // Calcular qué semilla fue clickeada
+                for (let i = 0; i < seeds.length; i++) {
+                    const seedEndX = currentSeedX + envolturaWidth;
+                    if (mouseX >= currentSeedX && mouseX < seedEndX) {
+                        // Seleccionar esta semilla
+                        selectedSeed = seeds[i];
+                        isShovelActive = false; // Desactivar pala si estaba activa
+                        break;
+                    }
+                    currentSeedX += envolturaWidth;
+                }
+            }
+        }
         // --- [FIN_ZONA_CLICK_SEMILLAS_1.2] ---
     });
 
@@ -435,6 +455,29 @@
         drawLawnmowers();
 
         // --- [INICIO_ZONA_DRAW_FANTASMA_1.2] ---
+        // Dibujar planta fantasma si hay una semilla seleccionada
+        if (selectedSeed && mouseX >= GRID_START_X && mouseX < GRID_END_X && 
+            mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
+            
+            // Calcular la celda sobre la que está el mouse
+            const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
+            const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
+            
+            // Calcular el centro de la celda para hacer snap
+            const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
+            const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+            
+            // Dibujar la imagen de la semilla con transparencia como fantasma
+            const plantImg = images[selectedSeed.imageKey];
+            if (plantImg) {
+                ctx.save();
+                ctx.globalAlpha = 0.4;
+                const drawX = cellCenterX - (plantImg.width / 2);
+                const drawY = cellCenterY - (plantImg.height / 2);
+                ctx.drawImage(plantImg, drawX, drawY);
+                ctx.restore();
+            }
+        }
         // --- [FIN_ZONA_DRAW_FANTASMA_1.2] ---
 
         drawUI();
