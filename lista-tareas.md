@@ -1,5 +1,19 @@
 # 🧟‍♂️ PVZ WEB CLONE - MASTER TASK LIST PARA AGENTES IA 🌻
 
+## 📍 TABLA DE REFERENCIA ESPACIAL (GROUND TRUTH)
+
+* **Cortacésped**: Posición `X = -70`.
+* **Escalas (Scale)**:
+    * Girasol y Nuez: `0.3`.
+    * Lanzaguisantes y Zombis: `0.35`.
+    * Soles: `0.5`.
+* **Combate**:
+    * FPS: `30`.
+    * Altura Guisante: `+40px` respecto al centro de su casilla.
+    * Fogonazo de disparo: Fotograma `27` del Lanzaguisantes.
+
+---
+
 ## 📜 REGLAS GLOBALES DE OPERACIÓN (LEER ANTES DE CODIFICAR)
 1. **Un solo archivo:** Todo el desarrollo se hace en `index.html`. NO crees archivos `.js` o `.css`.
 2. **Inyección por Anclas:** Busca en `index.html` los comentarios de anclaje (ej. `// --- [INICIO_ZONA_CLASE_SUN_1.1] ---`). Escribe tu código ESTRICTAMENTE dentro de esa zona para evitar Merge Conflicts.

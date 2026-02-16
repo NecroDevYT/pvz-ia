@@ -116,8 +116,8 @@
             this.targetY = 100;
             this.frame = Math.floor(Math.random() * SUN_TOTAL_FRAMES);
             this.animSpeed = 2;
-            this.width = 130;
-            this.height = 130;
+            this.width = 0;
+            this.height = 0;
             this.markedForDeletion = false;
         }
 
@@ -135,7 +135,6 @@
                 // Llegó al destino
                 if (Math.abs(this.x - this.targetX) < 5 && Math.abs(this.y - this.targetY) < 5) {
                     sunAmount += 25;
-                    new Audio('recursos/sonidos/Recoger sol 1.wav').play();
                     
                     // FloatingText dorado
                     floatingTexts.push(new FloatingText('+25', this.targetX, this.targetY, '#FFD700'));
@@ -161,9 +160,12 @@
 
         draw() {
             if (sunFrames[this.frame]) {
+                const img = sunFrames[this.frame];
+                this.width = img.naturalWidth * 0.5;
+                this.height = img.naturalHeight * 0.5;
                 const drawX = this.x - this.width / 2;
                 const drawY = this.y - this.height / 2;
-                ctx.drawImage(sunFrames[this.frame], drawX, drawY, this.width, this.height);
+                ctx.drawImage(img, drawX, drawY, this.width, this.height);
             }
         }
 
@@ -293,6 +295,7 @@
         for (const sun of suns) {
             if (!sun.isCollecting && sun.isClicked(mouseX, mouseY)) {
                 sun.isCollecting = true;
+                new Audio('recursos/sonidos/Recoger sol 1.wav').play();
                 break;
             }
         }
