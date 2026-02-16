@@ -73,6 +73,13 @@
         cortacesped: 'recursos/cortacesped.png'
     };
 
+    // Frames de animación de plantas (se cargan dinámicamente)
+    const plantAnimations = {
+        girasol: { folder: 'girasol perturbador', prefix: 'girasol perturbador', frames: 58, images: [] },
+        guisante: { folder: 'lg reposo perturbador', prefix: 'lg reposo perturbador', frames: 31, images: [] },
+        nuez: { folder: 'nuez', prefix: 'nuez', frames: 1, images: [] }
+    };
+
     const images = {};
     let imagesLoaded = 0;
     const totalImages = Object.keys(imageSources).length;
@@ -108,6 +115,149 @@
     // --- [FIN_ZONA_CLASE_ZOMBIE_2.1] ---
 
     // --- [INICIO_ZONA_CLASE_PLANT_1.3] ---
+    class Plant {
+        constructor(type, col, row) {
+            this.type = type;
+            this.col = col;
+            this.row = row;
+            this.x = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
+            this.y = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+            this.frame = 0;
+            this.frameSpeed = 3; // Velocidad de animación
+            this.flashTimer = 0;
+            this.markedForDeletion = false;
+            
+            // HP según tipo de planta
+            if (type === 'nuez') {
+                this.hp = 4000;
+            } else {
+                this.hp = 300;
+            }
+        }
+
+        takeDamage(amount) {
+            this.hp -= amount;
+            this.flashTimer = 4; // Parpadeo blanco durante 4 frames
+            if (this.hp <= 0) {
+                this.markedForDeletion = true;
+                gridState[this.col][this.row] = null;
+            }
+        }
+
+        update() {
+            // Avanzar animación
+            if (frames % this.frameSpeed === 0) {
+                const anim = plantAnimations[this.type];
+                if (anim) {
+                    this.frame = (this.frame + 1) % anim.frames;
+                }
+            }
+            // Reducir flashTimer
+            if (this.flashTimer > 0) {
+                this.flashTimer--;
+            }
+        }
+
+        draw(ctx) {
+            const anim = plantAnimations[this.type];
+            if (!anim || !anim.images[this.frame]) return;
+
+            const img = anim.images[this.frame];
+            const drawX = this.x - (img.width / 2);
+            const drawY = this.y - (img.height / 2) - 20; // Offset vertical para centrar mejor
+
+            // Dibujar planta
+            ctx.drawImage(img, drawX, drawY);
+
+            // Efecto de flash blanco al recibir daño
+            if (this.flashTimer > 0) {
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(drawX, drawY, img.width, img.height);
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        }
+    }
+
+    // Clase FloatingText para mostrar textos flotantes
+    class FloatingText {
+        constructor(text, x, y, color = '#FFD700') {
+            this.text = text;
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.alpha = 1;
+            this.vy = -2; // Velocidad vertical (sube)
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            this.y += this.vy;
+            this.alpha -= 0.02;
+            if (this.alpha <= 0) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        draw(ctx) {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.font = 'bold 36px Arial';
+            ctx.fillStyle = this.color;
+            ctx.textAlign = 'center';
+            ctx.fillText(this.text, this.x, this.y);
+            ctx.restore();
+        }
+    }
+
+    // Clase Particle para efectos de partículas
+    class Particle {
+        constructor(x, y, color, type = 'circle') {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.type = type;
+            this.vx = (Math.random() - 0.5) * 8;
+            this.vy = (Math.random() - 0.5) * 8 - 2;
+            this.gravity = 0.2;
+            this.alpha = 1;
+            this.size = Math.random() * 6 + 3;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += this.gravity;
+            this.alpha -= 0.03;
+            if (this.alpha <= 0) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        draw(ctx) {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            if (this.type === 'spark') {
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            } else {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+    }
+
+    // Función para crear partículas de tierra al plantar
+    function spawnDirtParticles(x, y) {
+        const colors = ['#8B4513', '#A0522D'];
+        for (let i = 0; i < 12; i++) {
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            particles.push(new Particle(x, y, color, 'circle'));
+        }
+    }
     // --- [FIN_ZONA_CLASE_PLANT_1.3] ---
 
     // ==========================================
@@ -129,9 +279,72 @@
         // --- [FIN_ZONA_CLICK_PALA_3.1] ---
 
         // --- [INICIO_ZONA_CLICK_PLANTAR_1.3] ---
+        // Verificar si hay semilla seleccionada y estamos en el grid
+        if (selectedSeed !== null) {
+            const seed = seeds[selectedSeed];
+            
+            // Verificar si el clic está dentro del grid
+            if (mouseX >= GRID_START_X && mouseX <= GRID_END_X &&
+                mouseY >= GRID_START_Y && mouseY <= GRID_END_Y) {
+                
+                // Calcular columna y fila
+                const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
+                const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
+                
+                // Verificar que la celda esté vacía
+                if (gridState[col][row] === null) {
+                    // Verificar soles suficientes y cooldown
+                    const canAfford = isDebug || sunAmount >= seed.cost;
+                    const cooldownReady = isDebug || seed.timer <= 0;
+                    
+                    if (canAfford && cooldownReady) {
+                        // Descontar costo
+                        if (!isDebug) {
+                            sunAmount -= seed.cost;
+                            seed.timer = seed.cooldown;
+                        }
+                        
+                        // Crear la planta
+                        const newPlant = new Plant(seed.name, col, row);
+                        plants.push(newPlant);
+                        gridState[col][row] = newPlant;
+                        
+                        // Generar FloatingText rojo con el costo
+                        floatingTexts.push(new FloatingText('-' + seed.cost, newPlant.x, newPlant.y - 50, '#FF0000'));
+                        
+                        // Reproducir sonido de plantar
+                        new Audio('recursos/sonidos/Plantar.wav').play();
+                        
+                        // Generar partículas de tierra
+                        spawnDirtParticles(newPlant.x, newPlant.y + 50);
+                        
+                        // Limpiar selección
+                        selectedSeed = null;
+                    }
+                }
+            }
+        }
         // --- [FIN_ZONA_CLICK_PLANTAR_1.3] ---
 
         // --- [INICIO_ZONA_CLICK_SEMILLAS_1.2] ---
+        // Detectar clic en la barra de semillas (Y entre 20 y 160)
+        if (mouseY >= 20 && mouseY <= 160) {
+            let currentSeedX = seedRange.min;
+            const envolturaImg = images.envoltura;
+            
+            if (envolturaImg) {
+                for (let i = 0; i < seeds.length; i++) {
+                    const seedWidth = envolturaImg.width;
+                    if (mouseX >= currentSeedX && mouseX <= currentSeedX + seedWidth) {
+                        selectedSeed = i;
+                        isShovelActive = false;
+                        new Audio('recursos/sonidos/Clic carta.wav').play();
+                        return;
+                    }
+                    currentSeedX += seedWidth;
+                }
+            }
+        }
         // --- [FIN_ZONA_CLICK_SEMILLAS_1.2] ---
     });
 
@@ -163,12 +376,39 @@
             img.onload = () => {
                 imagesLoaded++;
                 if (imagesLoaded === totalImages) {
-                    console.log('Todas las imágenes cargadas. Iniciando juego.');
-                    initGame();
+                    console.log('Todas las imágenes cargadas. Cargando animaciones...');
+                    loadPlantAnimations();
                 }
             };
             img.onerror = (e) => console.error('Error cargando imagen:', key, e);
             images[key] = img;
+        }
+    }
+
+    function loadPlantAnimations() {
+        let totalAnimFrames = 0;
+        let loadedAnimFrames = 0;
+
+        for (let plantType in plantAnimations) {
+            totalAnimFrames += plantAnimations[plantType].frames;
+        }
+
+        for (let plantType in plantAnimations) {
+            const anim = plantAnimations[plantType];
+            for (let i = 0; i < anim.frames; i++) {
+                const img = new Image();
+                const frameNum = anim.frames === 1 ? i : i.toString().padStart(2, '0');
+                img.src = `recursos/${anim.folder}/${anim.prefix}${frameNum}.png`;
+                img.onload = () => {
+                    loadedAnimFrames++;
+                    if (loadedAnimFrames === totalAnimFrames) {
+                        console.log('Animaciones de plantas cargadas. Iniciando juego.');
+                        initGame();
+                    }
+                };
+                img.onerror = (e) => console.error('Error cargando animación:', plantType, i, e);
+                anim.images.push(img);
+            }
         }
     }
 
@@ -177,6 +417,7 @@
         // === [FIN_TRIGGER_TAREA_1.1] ===
 
         // === [TRIGGER_TAREA_1.3] ===
+        sunAmount = 5000; // Soles ilimitados para pruebas
         // === [FIN_TRIGGER_TAREA_1.3] ===
 
         // === [TRIGGER_TAREA_2.1] ===
@@ -204,6 +445,22 @@
 
     function updateGame() {
         // --- [INICIO_ZONA_UPDATE_ENTIDADES] ---
+        // Actualizar plantas
+        plants.forEach(plant => plant.update());
+        plants = plants.filter(p => !p.markedForDeletion);
+
+        // Actualizar cooldowns de semillas
+        seeds.forEach(seed => {
+            if (seed.timer > 0) seed.timer--;
+        });
+
+        // Actualizar textos flotantes
+        floatingTexts.forEach(ft => ft.update());
+        floatingTexts = floatingTexts.filter(ft => !ft.markedForDeletion);
+
+        // Actualizar partículas
+        particles.forEach(p => p.update());
+        particles = particles.filter(p => !p.markedForDeletion);
         // --- [FIN_ZONA_UPDATE_ENTIDADES] ---
 
         // === [TRIGGER_TAREA_3.3] ===
@@ -232,6 +489,14 @@
         drawGrid();
 
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
+        // Dibujar plantas
+        plants.forEach(plant => plant.draw(ctx));
+
+        // Dibujar textos flotantes
+        floatingTexts.forEach(ft => ft.draw(ctx));
+
+        // Dibujar partículas
+        particles.forEach(p => p.draw(ctx));
         // --- [FIN_ZONA_DRAW_ENTIDADES] ---
 
         drawLawnmowers();
