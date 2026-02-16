@@ -277,6 +277,92 @@
     // --- [FIN_ZONA_CLASE_ZOMBIE_2.1] ---
 
     // --- [INICIO_ZONA_CLASE_PLANT_1.3] ---
+    const plantAnimations = {
+        girasol: { frames: [], totalFrames: 58, scale: 0.3, path: 'recursos/girasol perturbador/girasol perturbador', ext: '.png' },
+        guisante: { frames: [], totalFrames: 31, scale: 0.35, path: 'recursos/lg reposo perturbador/lg reposo perturbador', ext: '.png' },
+        nuez: { frames: [], totalFrames: 1, scale: 0.3, path: 'recursos/nuez/nuez', ext: '.png' }
+    };
+    let plantAnimsLoaded = 0;
+
+    class Plant {
+        constructor(type, col, row) {
+            this.type = type;
+            this.col = col;
+            this.row = row;
+            this.x = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
+            this.y = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+            this.frame = 0;
+            this.animSpeed = 2;
+            this.hp = 100;
+            this.maxHp = 100;
+            this.flashTimer = 0;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            // Animación
+            if (frames % this.animSpeed === 0) {
+                const animData = plantAnimations[this.type];
+                if (animData) {
+                    this.frame = (this.frame + 1) % animData.totalFrames;
+                }
+            }
+
+            // Decrementar flash timer
+            if (this.flashTimer > 0) {
+                this.flashTimer--;
+            }
+
+            // Marcar para eliminación si HP <= 0
+            if (this.hp <= 0) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        draw() {
+            const animData = plantAnimations[this.type];
+            if (animData && animData.frames[this.frame]) {
+                const img = animData.frames[this.frame];
+                const scale = animData.scale;
+                const width = img.naturalWidth * scale;
+                const height = img.naturalHeight * scale;
+                const drawX = this.x - width / 2;
+                const drawY = this.y - height / 2;
+
+                ctx.save();
+                ctx.drawImage(img, drawX, drawY, width, height);
+
+                // Flash blanco al recibir daño
+                if (this.flashTimer > 0) {
+                    ctx.globalCompositeOperation = 'source-atop';
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.fillRect(drawX, drawY, width, height);
+                }
+                ctx.restore();
+            }
+        }
+
+        takeDamage(amount) {
+            this.hp -= amount;
+            this.flashTimer = 4;
+            
+            // Generar FloatingText rojo con el daño
+            floatingTexts.push(new FloatingText(`-${amount}`, this.x, this.y - 30, '#FF0000'));
+        }
+    }
+
+    function loadPlantAnimations() {
+        for (const plantType in plantAnimations) {
+            const animData = plantAnimations[plantType];
+            for (let i = 0; i < animData.totalFrames; i++) {
+                const img = new Image();
+                const frameNum = String(i).padStart(2, '0');
+                img.src = `${animData.path}${frameNum}${animData.ext}`;
+                img.onload = () => plantAnimsLoaded++;
+                animData.frames.push(img);
+            }
+        }
+    }
     // --- [FIN_ZONA_CLASE_PLANT_1.3] ---
 
     // ==========================================
@@ -305,6 +391,47 @@
         // --- [FIN_ZONA_CLICK_PALA_3.1] ---
 
         // --- [INICIO_ZONA_CLICK_PLANTAR_1.3] ---
+        // Lógica de plantado
+        if (selectedSeed && mouseX >= GRID_START_X && mouseX < GRID_END_X && 
+            mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
+            
+            const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
+            const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
+            
+            // Verificar que la celda esté vacía
+            if (!gridState[col][row]) {
+                // Verificar soles suficientes y cooldown
+                if (sunAmount >= selectedSeed.cost && selectedSeed.timer <= 0) {
+                    // Descontar costo
+                    sunAmount -= selectedSeed.cost;
+                    
+                    // Crear planta
+                    const plant = new Plant(selectedSeed.name, col, row);
+                    plants.push(plant);
+                    gridState[col][row] = plant;
+                    
+                    // Reiniciar cooldown
+                    selectedSeed.timer = selectedSeed.cooldown;
+                    
+                    // FloatingText rojo con el costo
+                    const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
+                    const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+                    floatingTexts.push(new FloatingText(`-${selectedSeed.cost}`, cellCenterX, cellCenterY - 50, '#FF0000'));
+                    
+                    // Sonido de plantar
+                    new Audio('recursos/sonidos/Plantar.wav').play();
+                    
+                    // Partículas de tierra
+                    for (let i = 0; i < 10; i++) {
+                        particles.push(new Particle(cellCenterX, cellCenterY, '#8B4513', 'circle'));
+                        particles.push(new Particle(cellCenterX, cellCenterY, '#A0522D', 'circle'));
+                    }
+                    
+                    // Deseleccionar semilla
+                    selectedSeed = null;
+                }
+            }
+        }
         // --- [FIN_ZONA_CLICK_PLANTAR_1.3] ---
 
         // --- [INICIO_ZONA_CLICK_SEMILLAS_1.2] ---
@@ -354,6 +481,7 @@
 
     function loadImages() {
         loadSunFrames();
+        loadPlantAnimations();
         for (let key in imageSources) {
             const img = new Image();
             img.src = imageSources[key];
@@ -376,6 +504,7 @@
         // === [FIN_TRIGGER_TAREA_1.1] ===
 
         // === [TRIGGER_TAREA_1.3] ===
+        sunAmount = 5000;
         // === [FIN_TRIGGER_TAREA_1.3] ===
 
         // === [TRIGGER_TAREA_2.1] ===
@@ -414,6 +543,24 @@
         // Update particles
         particles.forEach(p => p.update());
         particles = particles.filter(p => !p.markedForDeletion);
+
+        // Update plants
+        plants.forEach(plant => plant.update());
+        plants = plants.filter(plant => {
+            if (plant.markedForDeletion) {
+                // Limpiar gridState
+                gridState[plant.col][plant.row] = null;
+                return false;
+            }
+            return true;
+        });
+
+        // Update seed cooldowns
+        seeds.forEach(seed => {
+            if (seed.timer > 0) {
+                seed.timer--;
+            }
+        });
         // --- [FIN_ZONA_UPDATE_ENTIDADES] ---
 
         // === [TRIGGER_TAREA_3.3] ===
@@ -442,6 +589,9 @@
         drawGrid();
 
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
+        // Draw plants
+        plants.forEach(plant => plant.draw());
+
         // Draw suns
         suns.forEach(sun => sun.draw());
 
