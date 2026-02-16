@@ -73,6 +73,11 @@
         cortacesped: 'recursos/cortacesped.png'
     };
 
+    // Frames de animación del sol (carga dinámica)
+    const sunFrames = [];
+    const SUN_TOTAL_FRAMES = 192;
+    let sunFramesLoaded = 0;
+
     const images = {};
     let imagesLoaded = 0;
     const totalImages = Object.keys(imageSources).length;
@@ -99,6 +104,168 @@
     // ==========================================
     
     // --- [INICIO_ZONA_CLASE_SUN_1.1] ---
+    class Sun {
+        constructor(x, y, isFalling = true) {
+            this.x = x;
+            this.y = y;
+            this.isFalling = isFalling;
+            this.finalY = isFalling ? y + Math.random() * 300 + 200 : y;
+            this.fallSpeed = 1.5;
+            this.isCollecting = false;
+            this.targetX = 105;
+            this.targetY = 100;
+            this.frame = Math.floor(Math.random() * SUN_TOTAL_FRAMES);
+            this.animSpeed = 2;
+            this.width = 130;
+            this.height = 130;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            // Animación
+            if (frames % this.animSpeed === 0) {
+                this.frame = (this.frame + 1) % SUN_TOTAL_FRAMES;
+            }
+
+            if (this.isCollecting) {
+                // Lerp hacia la UI
+                this.x += (this.targetX - this.x) * 0.15;
+                this.y += (this.targetY - this.y) * 0.15;
+
+                // Llegó al destino
+                if (Math.abs(this.x - this.targetX) < 5 && Math.abs(this.y - this.targetY) < 5) {
+                    sunAmount += 25;
+                    new Audio('recursos/sonidos/Recoger sol 1.wav').play();
+                    
+                    // FloatingText dorado
+                    floatingTexts.push(new FloatingText('+25', this.targetX, this.targetY, '#FFD700'));
+                    
+                    // Partículas doradas
+                    for (let i = 0; i < 8; i++) {
+                        particles.push(new Particle(this.targetX, this.targetY, '#FFD700', 'spark'));
+                        particles.push(new Particle(this.targetX, this.targetY, '#FFFF00', 'circle'));
+                    }
+                    
+                    this.markedForDeletion = true;
+                }
+            } else if (this.isFalling) {
+                // Caída
+                if (this.y < this.finalY) {
+                    this.y += this.fallSpeed;
+                } else {
+                    this.y = this.finalY;
+                    this.isFalling = false;
+                }
+            }
+        }
+
+        draw() {
+            if (sunFrames[this.frame]) {
+                const drawX = this.x - this.width / 2;
+                const drawY = this.y - this.height / 2;
+                ctx.drawImage(sunFrames[this.frame], drawX, drawY, this.width, this.height);
+            }
+        }
+
+        isClicked(mx, my) {
+            const halfW = this.width / 2;
+            const halfH = this.height / 2;
+            return mx >= this.x - halfW && mx <= this.x + halfW &&
+                   my >= this.y - halfH && my <= this.y + halfH;
+        }
+    }
+
+    class FloatingText {
+        constructor(text, x, y, color = '#FFD700') {
+            this.text = text;
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.alpha = 1;
+            this.velocityY = -2;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            this.y += this.velocityY;
+            this.alpha -= 0.02;
+            if (this.alpha <= 0) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.font = 'bold 36px Arial';
+            ctx.fillStyle = this.color;
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 3;
+            ctx.strokeText(this.text, this.x, this.y);
+            ctx.fillText(this.text, this.x, this.y);
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color, type = 'circle') {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.type = type;
+            this.size = Math.random() * 6 + 3;
+            this.velocityX = (Math.random() - 0.5) * 8;
+            this.velocityY = (Math.random() - 0.5) * 8 - 2;
+            this.gravity = 0.15;
+            this.alpha = 1;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            this.x += this.velocityX;
+            this.y += this.velocityY;
+            this.velocityY += this.gravity;
+            this.alpha -= 0.03;
+            if (this.alpha <= 0) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            if (this.type === 'spark') {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y - this.size);
+                ctx.lineTo(this.x + this.size * 0.3, this.y);
+                ctx.lineTo(this.x, this.y + this.size);
+                ctx.lineTo(this.x - this.size * 0.3, this.y);
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+    }
+
+    function spawnSun(x, y, isFalling = true) {
+        suns.push(new Sun(x, y, isFalling));
+    }
+
+    function loadSunFrames() {
+        for (let i = 0; i < SUN_TOTAL_FRAMES; i++) {
+            const img = new Image();
+            const frameNum = String(i).padStart(3, '0');
+            img.src = `recursos/sol/sol${frameNum}.png`;
+            img.onload = () => sunFramesLoaded++;
+            sunFrames.push(img);
+        }
+    }
     // --- [FIN_ZONA_CLASE_SUN_1.1] ---
 
     // --- [INICIO_ZONA_CLASE_PEA_2.2] ---
@@ -123,6 +290,12 @@
         if (isPaused) return;
 
         // --- [INICIO_ZONA_CLICK_SOLES_1.1] ---
+        for (const sun of suns) {
+            if (!sun.isCollecting && sun.isClicked(mouseX, mouseY)) {
+                sun.isCollecting = true;
+                break;
+            }
+        }
         // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
 
         // --- [INICIO_ZONA_CLICK_PALA_3.1] ---
@@ -157,6 +330,7 @@
     }
 
     function loadImages() {
+        loadSunFrames();
         for (let key in imageSources) {
             const img = new Image();
             img.src = imageSources[key];
@@ -174,6 +348,8 @@
 
     function initGame() {
         // === [TRIGGER_TAREA_1.1] ===
+        spawnSun(200, 300, false);
+        spawnSun(400, 300, false);
         // === [FIN_TRIGGER_TAREA_1.1] ===
 
         // === [TRIGGER_TAREA_1.3] ===
@@ -204,6 +380,17 @@
 
     function updateGame() {
         // --- [INICIO_ZONA_UPDATE_ENTIDADES] ---
+        // Update suns
+        suns.forEach(sun => sun.update());
+        suns = suns.filter(sun => !sun.markedForDeletion);
+
+        // Update floating texts
+        floatingTexts.forEach(ft => ft.update());
+        floatingTexts = floatingTexts.filter(ft => !ft.markedForDeletion);
+
+        // Update particles
+        particles.forEach(p => p.update());
+        particles = particles.filter(p => !p.markedForDeletion);
         // --- [FIN_ZONA_UPDATE_ENTIDADES] ---
 
         // === [TRIGGER_TAREA_3.3] ===
@@ -232,6 +419,14 @@
         drawGrid();
 
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
+        // Draw suns
+        suns.forEach(sun => sun.draw());
+
+        // Draw particles
+        particles.forEach(p => p.draw());
+
+        // Draw floating texts
+        floatingTexts.forEach(ft => ft.draw());
         // --- [FIN_ZONA_DRAW_ENTIDADES] ---
 
         drawLawnmowers();
