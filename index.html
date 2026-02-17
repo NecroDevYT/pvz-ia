@@ -29,6 +29,8 @@
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const tintCanvas = document.createElement('canvas');
+    const tintCtx = tintCanvas.getContext('2d');
 
     // Configuración de la Grid
     const GRID_START_X = 90;
@@ -407,9 +409,17 @@
 
                 // Flash blanco al recibir daño
                 if (this.flashTimer > 0) {
-                    ctx.globalCompositeOperation = 'source-atop';
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(drawX, drawY, width, height);
+                    tintCanvas.width = width;
+                    tintCanvas.height = height;
+                    tintCtx.drawImage(img, 0, 0, width, height);
+                    tintCtx.globalCompositeOperation = 'source-in';
+                    tintCtx.fillStyle = 'white';
+                    tintCtx.fillRect(0, 0, width, height);
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.drawImage(tintCanvas, drawX, drawY);
+                    ctx.restore();
                 }
                 
                 ctx.restore();
@@ -498,9 +508,17 @@
 
                 // Flash blanco al recibir daño
                 if (this.flashTimer > 0) {
-                    ctx.globalCompositeOperation = 'source-atop';
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(drawX, drawY, width, height);
+                    tintCanvas.width = width;
+                    tintCanvas.height = height;
+                    tintCtx.drawImage(img, 0, 0, width, height);
+                    tintCtx.globalCompositeOperation = 'source-in';
+                    tintCtx.fillStyle = 'white';
+                    tintCtx.fillRect(0, 0, width, height);
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.drawImage(tintCanvas, drawX, drawY);
+                    ctx.restore();
                 }
                 ctx.restore();
             }
