@@ -70,7 +70,8 @@
         semillaGirasol: 'recursos/semilla de girasol.png',
         semillaGuisante: 'recursos/semilla de lanza guisantes.png',
         semillaNuez: 'recursos/semilla de nuez.png',
-        cortacesped: 'recursos/cortacesped.png'
+        cortacesped: 'recursos/cortacesped.png',
+        guisante: 'recursos/guisante.png'
     };
 
     // Frames de animación del sol (carga dinámica)
@@ -271,6 +272,40 @@
     // --- [FIN_ZONA_CLASE_SUN_1.1] ---
 
     // --- [INICIO_ZONA_CLASE_PEA_2.2] ---
+    class Pea {
+        constructor(x, y, row) {
+            this.x = x;
+            this.y = y;
+            this.row = row;
+            this.speed = 5;
+            this.damage = 20;
+            this.width = 0;
+            this.height = 0;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            this.x += this.speed;
+
+            // Marcar para eliminación si sale del canvas
+            if (this.x > canvas.width) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        draw() {
+            if (images.guisante) {
+                const img = images.guisante;
+                this.width = img.width;
+                this.height = img.height;
+                ctx.drawImage(img, this.x - this.width / 2, this.y - this.height / 2);
+            }
+        }
+    }
+
+    function spawnPea(x, y, row) {
+        peas.push(new Pea(x, y, row));
+    }
     // --- [FIN_ZONA_CLASE_PEA_2.2] ---
 
     // --- [INICIO_ZONA_CLASE_ZOMBIE_2.1] ---
@@ -280,6 +315,7 @@
     const plantAnimations = {
         girasol: { frames: [], totalFrames: 58, scale: 0.3, path: 'recursos/girasol perturbador/girasol perturbador', ext: '.png', padZeros: 2 },
         guisante: { frames: [], totalFrames: 31, scale: 0.35, path: 'recursos/lg reposo perturbador/lg reposo perturbador', ext: '.png', padZeros: 2 },
+        lg_ataque: { frames: [], totalFrames: 46, scale: 0.35, path: 'recursos/lanza guisantes ataque/lanza guisantes ataque', ext: '.png', padZeros: 2 },
         nuez: { frames: [], totalFrames: 1, scale: 0.3, path: 'recursos/nuez/nuez', ext: '.png', padZeros: 0 }
     };
     let plantAnimsLoaded = 0;
@@ -297,14 +333,59 @@
             this.maxHp = 100;
             this.flashTimer = 0;
             this.markedForDeletion = false;
+            this.currentAnim = type; // Animación actual
+            this.hasFiredThisLoop = false; // Para disparar solo una vez por ciclo
         }
 
         update() {
+            // Lógica especial para lanzaguisantes
+            if (this.type === 'guisante') {
+                // Detectar zombis en la misma fila a la derecha
+                let hasZombieInRow = false;
+                for (const zombie of zombies) {
+                    if (zombie.row === this.row && zombie.x > this.x) {
+                        hasZombieInRow = true;
+                        break;
+                    }
+                }
+
+                // Cambiar animación según la presencia de zombis
+                if (hasZombieInRow && this.currentAnim !== 'lg_ataque') {
+                    this.currentAnim = 'lg_ataque';
+                    this.frame = 0;
+                    this.hasFiredThisLoop = false;
+                } else if (!hasZombieInRow && this.currentAnim === 'lg_ataque') {
+                    this.currentAnim = 'guisante';
+                    this.frame = 0;
+                }
+            }
+
             // Animación
             if (frames % this.animSpeed === 0) {
-                const animData = plantAnimations[this.type];
+                const animData = plantAnimations[this.currentAnim];
                 if (animData) {
+                    const prevFrame = this.frame;
                     this.frame = (this.frame + 1) % animData.totalFrames;
+
+                    // Disparar en el frame 27 de lg_ataque
+                    if (this.currentAnim === 'lg_ataque' && this.frame === 27 && !this.hasFiredThisLoop) {
+                        // Posición de la boca del lanzaguisantes (+40px según la tabla de referencia)
+                        const peaY = this.y + 40;
+                        spawnPea(this.x + 30, peaY, this.row);
+                        
+                        // Generar partículas de chispas amarillas en la boca
+                        for (let i = 0; i < 8; i++) {
+                            particles.push(new Particle(this.x + 30, peaY, '#FFFF00', 'spark'));
+                            particles.push(new Particle(this.x + 30, peaY, '#ADFF2F', 'spark'));
+                        }
+                        
+                        this.hasFiredThisLoop = true;
+                    }
+
+                    // Resetear flag al completar el ciclo
+                    if (this.frame < prevFrame) {
+                        this.hasFiredThisLoop = false;
+                    }
                 }
             }
 
@@ -320,7 +401,7 @@
         }
 
         draw() {
-            const animData = plantAnimations[this.type];
+            const animData = plantAnimations[this.currentAnim];
             if (animData && animData.frames[this.frame]) {
                 const img = animData.frames[this.frame];
                 const scale = animData.scale;
@@ -512,6 +593,8 @@
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
+        plants.push(new Plant('guisante', 0, 2));
+        zombies.push(new Zombie(2));
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
@@ -562,6 +645,10 @@
                 seed.timer--;
             }
         });
+
+        // Update peas
+        peas.forEach(pea => pea.update());
+        peas = peas.filter(pea => !pea.markedForDeletion);
         // --- [FIN_ZONA_UPDATE_ENTIDADES] ---
 
         // === [TRIGGER_TAREA_3.3] ===
@@ -592,6 +679,9 @@
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
         // Draw plants
         plants.forEach(plant => plant.draw());
+
+        // Draw peas
+        peas.forEach(pea => pea.draw());
 
         // Draw suns
         suns.forEach(sun => sun.draw());
