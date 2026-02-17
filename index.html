@@ -528,6 +528,38 @@
     // ==========================================
     function checkCollisions() {
         // --- [INICIO_ZONA_COLISIONES_2.3] ---
+        // Colisión Pea vs Zombie
+        for (const pea of peas) {
+            if (pea.markedForDeletion) continue;
+            
+            for (const z of zombies) {
+                if (z.markedForDeletion || z.state === 'die') continue;
+                
+                // Solo verificar si están en la misma fila
+                if (pea.row !== z.row) continue;
+                
+                // Verificar colisión con margen de 40px
+                const distance = Math.abs(pea.x - z.x);
+                if (distance < 40) {
+                    // Aplicar daño al zombi
+                    z.takeDamage(20);
+                    
+                    // Marcar guisante para borrado
+                    pea.markedForDeletion = true;
+                    
+                    // Reproducir sonido de impacto
+                    new Audio('recursos/sonidos/Hit.wav').play();
+                    
+                    // Generar partículas verdes en el punto de impacto
+                    for (let i = 0; i < 6; i++) {
+                        particles.push(new Particle(pea.x, pea.y, '#33FF33', 'circle'));
+                        particles.push(new Particle(pea.x, pea.y, '#00CC00', 'spark'));
+                    }
+                    
+                    break; // Un guisante solo golpea a un zombi
+                }
+            }
+        }
         // --- [FIN_ZONA_COLISIONES_2.3] ---
     }
 
