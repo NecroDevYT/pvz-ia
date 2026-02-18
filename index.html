@@ -29,6 +29,8 @@
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const tintCanvas = document.createElement('canvas');
+    const tintCtx = tintCanvas.getContext('2d');
 
     // Configuración de la Grid
     const GRID_START_X = 90;
@@ -70,7 +72,8 @@
         semillaGirasol: 'recursos/semilla de girasol.png',
         semillaGuisante: 'recursos/semilla de lanza guisantes.png',
         semillaNuez: 'recursos/semilla de nuez.png',
-        cortacesped: 'recursos/cortacesped.png'
+        cortacesped: 'recursos/cortacesped.png',
+        guisante: 'recursos/guisante.png'
     };
 
     // Frames de animación del sol (carga dinámica)
@@ -271,15 +274,222 @@
     // --- [FIN_ZONA_CLASE_SUN_1.1] ---
 
     // --- [INICIO_ZONA_CLASE_PEA_2.2] ---
+    class Pea {
+        constructor(x, y, row) {
+            this.x = x;
+            this.y = y;
+            this.row = row;
+            this.speed = 5;
+            this.damage = 20;
+            this.width = 0;
+            this.height = 0;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            this.x += this.speed;
+
+            // Marcar para eliminación si sale del canvas
+            if (this.x > canvas.width) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        draw() {
+            if (images.guisante) {
+                const img = images.guisante;
+                this.width = img.width;
+                this.height = img.height;
+                ctx.drawImage(img, this.x - this.width / 2, this.y - this.height / 2);
+            }
+        }
+    }
+
+    function spawnPea(x, y, row) {
+        peas.push(new Pea(x, y, row));
+    }
     // --- [FIN_ZONA_CLASE_PEA_2.2] ---
 
     // --- [INICIO_ZONA_CLASE_ZOMBIE_2.1] ---
+    const zombieAnimations = {
+        walk: { frames: [], totalFrames: 46, scale: 0.35, path: 'recursos/zombie caminata/zombie caminata', ext: '.png', padZeros: 2 },
+        eat: { frames: [], totalFrames: 36, scale: 0.35, path: 'recursos/zombie come/zombie come', ext: '.png', padZeros: 2 },
+        die: { frames: [], totalFrames: 50, scale: 0.35, path: 'recursos/zombie perdurbador cae/zombie perdurbador cae', ext: '.png', padZeros: 2 }
+    };
+    let zombieAnimsLoaded = 0;
+
+    class Zombie {
+        constructor(row = null) {
+            this.row = row !== null ? row : Math.floor(Math.random() * ROWS);
+            this.x = GRID_END_X + 100;
+            this.y = GRID_START_Y + (this.row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+            this.state = 'walk';
+            this.speed = 0.3;
+            this.frame = 0;
+            this.animSpeed = 2;
+            this.hp = 100;
+            this.maxHp = 100;
+            this.damage = 10;
+            this.attackCooldown = 30; // Frames entre ataques
+            this.attackTimer = 0;
+            this.flashTimer = 0;
+            this.fadeTimer = 0;
+            this.targetPlant = null;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            // Animación
+            if (frames % this.animSpeed === 0) {
+                const animData = zombieAnimations[this.state];
+                if (animData) {
+                    if (this.state === 'die' && this.frame >= animData.totalFrames - 1) {
+                        // Mantener en el último frame
+                        this.frame = animData.totalFrames - 1;
+                    } else {
+                        this.frame = (this.frame + 1) % animData.totalFrames;
+                    }
+                }
+            }
+
+            // Decrementar flash timer
+            if (this.flashTimer > 0) {
+                this.flashTimer--;
+            }
+
+            // Estados
+            if (this.state === 'walk') {
+                // Buscar planta en la misma fila para comer
+                let closestPlant = null;
+                let minDistance = Infinity;
+
+                for (const plant of plants) {
+                    if (plant.row === this.row && plant.x < this.x) {
+                        const dist = this.x - plant.x;
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestPlant = plant;
+                        }
+                    }
+                }
+
+                // Si hay una planta cerca (menos de 60px), cambiar a estado eat
+                if (closestPlant && minDistance < 60) {
+                    this.state = 'eat';
+                    this.targetPlant = closestPlant;
+                    this.frame = 0;
+                } else {
+                    // Seguir caminando
+                    this.x -= this.speed;
+                }
+            } else if (this.state === 'eat') {
+                // Atacar la planta objetivo
+                if (this.targetPlant && !this.targetPlant.markedForDeletion) {
+                    this.attackTimer++;
+                    if (this.attackTimer >= this.attackCooldown) {
+                        this.targetPlant.takeDamage(this.damage);
+                        this.attackTimer = 0;
+                        
+                        // Sonido de comer (aleatorio entre 3 sonidos)
+                        const eatSound = Math.floor(Math.random() * 3) + 1;
+                        new Audio(`recursos/sonidos/Zombi come ${eatSound}.wav`).play();
+                    }
+                } else {
+                    // La planta fue destruida, volver a caminar
+                    this.state = 'walk';
+                    this.targetPlant = null;
+                    this.attackTimer = 0;
+                    this.frame = 0;
+                }
+            } else if (this.state === 'die') {
+                // Incrementar fade timer
+                this.fadeTimer++;
+                if (this.fadeTimer >= 45) {
+                    this.markedForDeletion = true;
+                }
+            }
+
+            // Marcar para eliminación si HP <= 0 y no está en estado die
+            if (this.hp <= 0 && this.state !== 'die') {
+                this.state = 'die';
+                this.frame = 0;
+                this.fadeTimer = 0;
+                
+                // Generar partículas moradas
+                for (let i = 0; i < 15; i++) {
+                    particles.push(new Particle(this.x, this.y, '#663399', 'circle'));
+                    particles.push(new Particle(this.x, this.y, '#4B0082', 'spark'));
+                }
+            }
+        }
+
+        draw() {
+            const animData = zombieAnimations[this.state];
+            if (animData && animData.frames[this.frame]) {
+                const img = animData.frames[this.frame];
+                const scale = animData.scale;
+                const width = img.naturalWidth * scale;
+                const height = img.naturalHeight * scale;
+                const drawX = this.x - width / 2;
+                const drawY = this.y - height / 2;
+
+                ctx.save();
+                
+                // Aplicar fade si está muriendo
+                if (this.state === 'die') {
+                    ctx.globalAlpha = 1 - (this.fadeTimer / 45);
+                }
+                
+                ctx.drawImage(img, drawX, drawY, width, height);
+
+                // Flash blanco al recibir daño
+                if (this.flashTimer > 0) {
+                    tintCanvas.width = width;
+                    tintCanvas.height = height;
+                    tintCtx.drawImage(img, 0, 0, width, height);
+                    tintCtx.globalCompositeOperation = 'source-in';
+                    tintCtx.fillStyle = 'white';
+                    tintCtx.fillRect(0, 0, width, height);
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.drawImage(tintCanvas, drawX, drawY);
+                    ctx.restore();
+                }
+                
+                ctx.restore();
+            }
+        }
+
+        takeDamage(amount) {
+            this.hp -= amount;
+            this.flashTimer = 4;
+            
+            // Generar FloatingText rojo con el daño
+            floatingTexts.push(new FloatingText(`-${amount}`, this.x, this.y - 30, '#FF0000'));
+        }
+    }
+
+    function loadZombieAnimations() {
+        for (const animName in zombieAnimations) {
+            const animData = zombieAnimations[animName];
+            for (let i = 0; i < animData.totalFrames; i++) {
+                const img = new Image();
+                const pad = (animData.padZeros !== undefined) ? animData.padZeros : 2;
+                const frameNum = String(i).padStart(pad, '0');
+                img.src = `${animData.path}${frameNum}${animData.ext}`;
+                img.onload = () => zombieAnimsLoaded++;
+                animData.frames.push(img);
+            }
+        }
+    }
     // --- [FIN_ZONA_CLASE_ZOMBIE_2.1] ---
 
     // --- [INICIO_ZONA_CLASE_PLANT_1.3] ---
     const plantAnimations = {
         girasol: { frames: [], totalFrames: 58, scale: 0.3, path: 'recursos/girasol perturbador/girasol perturbador', ext: '.png', padZeros: 2 },
         guisante: { frames: [], totalFrames: 31, scale: 0.35, path: 'recursos/lg reposo perturbador/lg reposo perturbador', ext: '.png', padZeros: 2 },
+        lg_ataque: { frames: [], totalFrames: 46, scale: 0.35, path: 'recursos/lanza guisantes ataque/lanza guisantes ataque', ext: '.png', padZeros: 2 },
         nuez: { frames: [], totalFrames: 1, scale: 0.3, path: 'recursos/nuez/nuez', ext: '.png', padZeros: 0 }
     };
     let plantAnimsLoaded = 0;
@@ -297,14 +507,59 @@
             this.maxHp = 100;
             this.flashTimer = 0;
             this.markedForDeletion = false;
+            this.currentAnim = type; // Animación actual
+            this.hasFiredThisLoop = false; // Para disparar solo una vez por ciclo
         }
 
         update() {
+            // Lógica especial para lanzaguisantes
+            if (this.type === 'guisante') {
+                // Detectar zombis en la misma fila a la derecha
+                let hasZombieInRow = false;
+                for (const zombie of zombies) {
+                    if (zombie.row === this.row && zombie.x > this.x) {
+                        hasZombieInRow = true;
+                        break;
+                    }
+                }
+
+                // Cambiar animación según la presencia de zombis
+                if (hasZombieInRow && this.currentAnim !== 'lg_ataque') {
+                    this.currentAnim = 'lg_ataque';
+                    this.frame = 0;
+                    this.hasFiredThisLoop = false;
+                } else if (!hasZombieInRow && this.currentAnim === 'lg_ataque') {
+                    this.currentAnim = 'guisante';
+                    this.frame = 0;
+                }
+            }
+
             // Animación
             if (frames % this.animSpeed === 0) {
-                const animData = plantAnimations[this.type];
+                const animData = plantAnimations[this.currentAnim];
                 if (animData) {
+                    const prevFrame = this.frame;
                     this.frame = (this.frame + 1) % animData.totalFrames;
+
+                    // Disparar en el frame 27 de lg_ataque
+                    if (this.currentAnim === 'lg_ataque' && this.frame === 27 && !this.hasFiredThisLoop) {
+                        // Posición de la boca del lanzaguisantes (+40px según la tabla de referencia)
+                        const peaY = this.y - 40;
+                        spawnPea(this.x + 30, peaY, this.row);
+                        
+                        // Generar partículas de chispas amarillas en la boca
+                        for (let i = 0; i < 8; i++) {
+                            particles.push(new Particle(this.x + 30, peaY, '#FFFF00', 'spark'));
+                            particles.push(new Particle(this.x + 30, peaY, '#ADFF2F', 'spark'));
+                        }
+                        
+                        this.hasFiredThisLoop = true;
+                    }
+
+                    // Resetear flag al completar el ciclo
+                    if (this.frame < prevFrame) {
+                        this.hasFiredThisLoop = false;
+                    }
                 }
             }
 
@@ -320,7 +575,7 @@
         }
 
         draw() {
-            const animData = plantAnimations[this.type];
+            const animData = plantAnimations[this.currentAnim];
             if (animData && animData.frames[this.frame]) {
                 const img = animData.frames[this.frame];
                 const scale = animData.scale;
@@ -334,9 +589,17 @@
 
                 // Flash blanco al recibir daño
                 if (this.flashTimer > 0) {
-                    ctx.globalCompositeOperation = 'source-atop';
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(drawX, drawY, width, height);
+                    tintCanvas.width = width;
+                    tintCanvas.height = height;
+                    tintCtx.drawImage(img, 0, 0, width, height);
+                    tintCtx.globalCompositeOperation = 'source-in';
+                    tintCtx.fillStyle = 'white';
+                    tintCtx.fillRect(0, 0, width, height);
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.drawImage(tintCanvas, drawX, drawY);
+                    ctx.restore();
                 }
                 ctx.restore();
             }
@@ -483,6 +746,7 @@
     function loadImages() {
         loadSunFrames();
         loadPlantAnimations();
+        loadZombieAnimations();
         for (let key in imageSources) {
             const img = new Image();
             img.src = imageSources[key];
@@ -509,9 +773,12 @@
         // === [FIN_TRIGGER_TAREA_1.3] ===
 
         // === [TRIGGER_TAREA_2.1] ===
+        zombies.push(new Zombie());
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
+        plants.push(new Plant('guisante', 0, 2));
+        zombies.push(new Zombie(2));
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
@@ -594,6 +861,14 @@
                 seed.timer--;
             }
         });
+
+        // Update zombies
+        zombies.forEach(zombie => zombie.update());
+        zombies = zombies.filter(zombie => !zombie.markedForDeletion);
+
+        // Update peas
+        peas.forEach(pea => pea.update());
+        peas = peas.filter(pea => !pea.markedForDeletion);
         // --- [FIN_ZONA_UPDATE_ENTIDADES] ---
 
         // === [TRIGGER_TAREA_3.3] ===
@@ -624,6 +899,12 @@
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
         // Draw plants
         plants.forEach(plant => plant.draw());
+
+        // Draw zombies
+        zombies.forEach(zombie => zombie.draw());
+
+        // Draw peas
+        peas.forEach(pea => pea.draw());
 
         // Draw suns
         suns.forEach(sun => sun.draw());
