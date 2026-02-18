@@ -279,7 +279,7 @@
             this.x = x;
             this.y = y;
             this.row = row;
-            this.speed = 5;
+            this.speed = 6.25; // +25% velocidad
             this.damage = 20;
             this.width = 0;
             this.height = 0;
@@ -402,10 +402,15 @@
                     this.frame = 0;
                 }
             } else if (this.state === 'die') {
-                // Incrementar fade timer
-                this.fadeTimer++;
-                if (this.fadeTimer >= 45) {
-                    this.markedForDeletion = true;
+                // Empezar a desvanecer SOLO después de terminar la animación de muerte
+                const dieAnimData = zombieAnimations.die;
+                const isLastDieFrame = dieAnimData && this.frame >= dieAnimData.totalFrames - 1;
+
+                if (isLastDieFrame) {
+                    this.fadeTimer++;
+                    if (this.fadeTimer >= 45) {
+                        this.markedForDeletion = true;
+                    }
                 }
             }
 
@@ -435,8 +440,10 @@
 
                 ctx.save();
                 
-                // Aplicar fade si está muriendo
-                if (this.state === 'die') {
+                // Aplicar fade si está muriendo (solo después del último frame)
+                const dieAnimData = zombieAnimations.die;
+                const isLastDieFrame = dieAnimData && this.frame >= dieAnimData.totalFrames - 1;
+                if (this.state === 'die' && isLastDieFrame) {
                     ctx.globalAlpha = 1 - (this.fadeTimer / 45);
                 }
                 
@@ -543,7 +550,7 @@
 
                     // Disparar en el frame 27 de lg_ataque
                     if (this.currentAnim === 'lg_ataque' && this.frame === 27 && !this.hasFiredThisLoop) {
-                        // Posición de la boca del lanzaguisantes (+40px según la tabla de referencia)
+                        // Posición de la boca del lanzaguisantes (40px hacia ARRIBA desde el centro de su celda)
                         const peaY = this.y - 40;
                         spawnPea(this.x + 30, peaY, this.row);
                         
@@ -777,8 +784,32 @@
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
-        plants.push(new Plant('guisante', 0, 2));
-        zombies.push(new Zombie(2));
+        // Debug: más lanzaguisantes + más zombis (espaciados) para testear disparos/colisiones
+        const debugPlants = [
+            new Plant('guisante', 0, 0),
+            new Plant('guisante', 0, 2),
+            new Plant('guisante', 0, 4),
+            new Plant('guisante', 1, 1),
+            new Plant('guisante', 1, 3)
+        ];
+        for (const p of debugPlants) {
+            plants.push(p);
+            gridState[p.col][p.row] = p;
+        }
+
+        const debugZombies = [
+            new Zombie(0),
+            new Zombie(1),
+            new Zombie(2),
+            new Zombie(3),
+            new Zombie(4),
+            new Zombie(2),
+            new Zombie(3)
+        ];
+        debugZombies.forEach((z, i) => {
+            z.x += i * 140;
+            zombies.push(z);
+        });
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
@@ -815,7 +846,7 @@
                     pea.markedForDeletion = true;
                     
                     // Reproducir sonido de impacto
-                    new Audio('recursos/sonidos/Hit.wav').play();
+                    new Audio('recursos/sonidos/Colision de guisante.mp3').play();
                     
                     // Generar partículas verdes en el punto de impacto
                     for (let i = 0; i < 6; i++) {
