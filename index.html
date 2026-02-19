@@ -1013,7 +1013,9 @@
             // 70% de probabilidad
             if (Math.random() < 0.7) {
                 const groanNum = Math.floor(Math.random() * 5) + 1;
-                new Audio(`recursos/sonidos/Gruñido de zombi ${groanNum}.wav`).play();
+                const audio = new Audio(`recursos/sonidos/Gruñido de zombi ${groanNum}.wav`);
+                audio.volume = 0.2;
+                audio.play();
             }
         }
         // === [FIN_TRIGGER_TAREA_3.3] ===
@@ -1242,20 +1244,41 @@
         
         // La bandera se mueve de derecha a izquierda (inicio en la derecha, final en la izquierda)
         // El progreso va de derecha (0%) a izquierda (100%)
-        const barStartX = barX + barImg.width - 40; // Lado derecho (inicio)
+        const barStartX = barX + barImg.width - 20; // Lado derecho (inicio) - Ajustado más a la derecha
         const barEndX = barX + 40; // Lado izquierdo (fin)
-        const flagX = barStartX - (barStartX - barEndX) * progress - (flagImg.width / 2);
+        
+        // Bandera estática en el final (izquierda)
+        const flagX = barEndX - (flagImg.width / 2);
         const flagY = barY - flagImg.height + 20;
         
         // Dibujar la bandera
         ctx.drawImage(flagImg, flagX, flagY);
         
-        // La cabeza del zombi también se mueve con el progreso
-        const zombieHeadX = barStartX - (barStartX - barEndX) * progress - (zombieHeadImg.width / 2);
-        const zombieHeadY = barY + (barImg.height / 2) - (zombieHeadImg.height / 2);
+        // Configuración de la cabeza del zombi (60% del tamaño)
+        const headScale = 0.6;
+        const headWidth = zombieHeadImg.naturalWidth * headScale;
+        const headHeight = zombieHeadImg.naturalHeight * headScale;
+
+        // La cabeza del zombi se mueve con el progreso
+        const zombieHeadX = barStartX - (barStartX - barEndX) * progress - (headWidth / 2);
+        const zombieHeadY = barY + (barImg.height / 2) - (headHeight / 2);
         
+        // Dibujar rastro verde (desde el inicio hasta la cabeza)
+        // El rastro va desde la derecha (barStartX) hasta la posición actual de la cabeza
+        ctx.save();
+        ctx.fillStyle = '#00FF00';
+        ctx.globalAlpha = 0.6;
+        // Ajustamos la altura del rastro para que encaje dentro de la barra
+        const trailHeight = barImg.height * 0.4; 
+        const trailY = barY + (barImg.height - trailHeight) / 2;
+        
+        // El rastro empieza en barStartX y termina en el centro de la cabeza
+        const headCenterX = zombieHeadX + headWidth / 2;
+        ctx.fillRect(headCenterX, trailY, barStartX - headCenterX, trailHeight);
+        ctx.restore();
+
         // Dibujar la cabeza del zombi
-        ctx.drawImage(zombieHeadImg, zombieHeadX, zombieHeadY);
+        ctx.drawImage(zombieHeadImg, zombieHeadX, zombieHeadY, headWidth, headHeight);
     }
     // --- [FIN_ZONA_FUNC_PROGRESO_3.3] ---
 
