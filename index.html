@@ -514,14 +514,25 @@
             this.frame = 0;
             this.animSpeed = 2;
             this.hp = 100;
-            this.maxHp = 100;
+            if (type === 'nuez') this.hp = 4000;
+            this.maxHp = this.hp;
             this.flashTimer = 0;
             this.markedForDeletion = false;
             this.currentAnim = type; // Animación actual
             this.hasFiredThisLoop = false; // Para disparar solo una vez por ciclo
+            this.sunTimer = 0; // Para girasoles
         }
 
         update() {
+            // Lógica de Girasol
+            if (this.type === 'girasol') {
+                this.sunTimer++;
+                if (this.sunTimer >= 700) { // ~23 segundos
+                    spawnSun(this.x, this.y, false);
+                    this.sunTimer = 0;
+                }
+            }
+
             // Lógica especial para lanzaguisantes
             if (this.type === 'guisante') {
                 // Detectar zombis en la misma fila a la derecha
@@ -650,6 +661,7 @@
 
     canvas.addEventListener('mousedown', (e) => {
         if (isPaused) return;
+        if (e.button !== 0) return; // Solo permitir clic izquierdo para estas acciones
 
         // --- [INICIO_ZONA_CLICK_SOLES_1.1] ---
         for (const sun of suns) {
@@ -662,6 +674,43 @@
         // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
 
         // --- [INICIO_ZONA_CLICK_PALA_3.1] ---
+        // Detectar clic en la pala
+        if (mouseY >= 20 && mouseY <= 160) {
+            if (mouseX >= shovelRange.min && mouseX < shovelRange.max) {
+                isShovelActive = !isShovelActive;
+                selectedSeed = null; // Desactivar semilla si estaba seleccionada
+            }
+        }
+        
+        // Si la pala está activa y se clickea una planta, eliminarla
+        if (isShovelActive && mouseX >= GRID_START_X && mouseX < GRID_END_X &&
+            mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
+            
+            const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
+            const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
+            
+            // Verificar si hay una planta en esa celda
+            if (gridState[col][row]) {
+                const plant = gridState[col][row];
+                
+                // Marcar planta para eliminación
+                plant.markedForDeletion = true;
+                
+                // Reproducir sonido de escarbar
+                new Audio('recursos/sonidos/Escarbar.wav').play();
+                
+                // Generar partículas marrones de tierra
+                const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
+                const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+                for (let i = 0; i < 12; i++) {
+                    particles.push(new Particle(cellCenterX, cellCenterY, '#8B4513', 'circle'));
+                    particles.push(new Particle(cellCenterX, cellCenterY, '#A0522D', 'circle'));
+                }
+                
+                // Desactivar pala después de usar
+                isShovelActive = false;
+            }
+        }
         // --- [FIN_ZONA_CLICK_PALA_3.1] ---
 
         // --- [INICIO_ZONA_CLICK_PLANTAR_1.3] ---
@@ -674,18 +723,22 @@
             
             // Verificar que la celda esté vacía
             if (!gridState[col][row]) {
-                // Verificar soles suficientes y cooldown
-                if (sunAmount >= selectedSeed.cost && selectedSeed.timer <= 0) {
-                    // Descontar costo
-                    sunAmount -= selectedSeed.cost;
+                // Verificar soles suficientes y cooldown (ignorar en modo debug)
+                if (isDebug || (sunAmount >= selectedSeed.cost && selectedSeed.timer <= 0)) {
+                    // Descontar costo (solo si no está en modo debug)
+                    if (!isDebug) {
+                        sunAmount -= selectedSeed.cost;
+                    }
                     
                     // Crear planta
                     const plant = new Plant(selectedSeed.name, col, row);
                     plants.push(plant);
                     gridState[col][row] = plant;
                     
-                    // Reiniciar cooldown
-                    selectedSeed.timer = selectedSeed.cooldown;
+                    // Reiniciar cooldown (solo si no está en modo debug)
+                    if (!isDebug) {
+                        selectedSeed.timer = selectedSeed.cooldown;
+                    }
                     
                     // FloatingText rojo con el costo
                     const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
@@ -732,8 +785,23 @@
         // --- [FIN_ZONA_CLICK_SEMILLAS_1.2] ---
     });
 
+    // --- [INICIO_ZONA_CLICK_DERECHO_3.1] ---
+    // Clic derecho cancela la selección de semilla y pala
+    canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); // Evitar menú contextual del navegador
+        selectedSeed = null;
+        isShovelActive = false;
+    });
+    // --- [FIN_ZONA_CLICK_DERECHO_3.1] ---
+
     window.addEventListener('keydown', (e) => {
         // --- [INICIO_ZONA_TECLAS_DEBUG_3.2] ---
+        if (e.key === 'p' || e.key === 'P') {
+            isPaused = !isPaused;
+        }
+        if (e.key === 'd' || e.key === 'D') {
+            isDebug = !isDebug;
+        }
         // --- [FIN_ZONA_TECLAS_DEBUG_3.2] ---
     });
 
@@ -774,48 +842,74 @@
 
     function initGame() {
         // === [TRIGGER_TAREA_1.1] ===
-        spawnSun(200, 300, false);
-        spawnSun(400, 300, false);
+        //spawnSun(200, 300, false);
+        //spawnSun(400, 300, false);
         // === [FIN_TRIGGER_TAREA_1.1] ===
 
         // === [TRIGGER_TAREA_1.3] ===
-        sunAmount = 5000;
+        sunAmount = 500; // Iniciar con soles razonables
         // === [FIN_TRIGGER_TAREA_1.3] ===
 
         // === [TRIGGER_TAREA_2.1] ===
-        zombies.push(new Zombie());
+        // Zombi inicial eliminado, usaremos el array de debug
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
-        // Debug: más lanzaguisantes + más zombis (espaciados) para testear disparos/colisiones
+        // Configuración inicial visualmente rica
         const debugPlants = [
-            new Plant('guisante', 0, 0),
-            new Plant('guisante', 0, 2),
-            new Plant('guisante', 0, 4),
-            new Plant('guisante', 1, 1),
-            new Plant('guisante', 1, 3)
+            // Girasoles en la retaguardia
+            new Plant('girasol', 0, 0),
+            new Plant('girasol', 0, 1),
+            new Plant('girasol', 0, 2),
+            new Plant('girasol', 0, 3),
+            new Plant('girasol', 0, 4),
+            
+            // Algunos guisantes defendiendo
+            new Plant('guisante', 1, 0),
+            new Plant('guisante', 1, 2),
+            new Plant('guisante', 2, 1),
+            new Plant('guisante', 2, 3),
+            new Plant('guisante', 2, 4),
+
+            // Nueces protegiendo flancos
+            new Plant('nuez', 4, 1),
+            new Plant('nuez', 4, 3)
         ];
+        
         for (const p of debugPlants) {
             plants.push(p);
             gridState[p.col][p.row] = p;
         }
 
         const debugZombies = [
+            // Primera oleada dispersa
             new Zombie(0),
-            new Zombie(1),
             new Zombie(2),
-            new Zombie(3),
             new Zombie(4),
+            // Segunda oleada más atrás
+            new Zombie(1),
+            new Zombie(3),
+            // Grupo denso al final
             new Zombie(2),
-            new Zombie(3)
+            new Zombie(2)
         ];
-        debugZombies.forEach((z, i) => {
-            z.x += i * 140;
-            zombies.push(z);
-        });
+        
+        // Ajustar posiciones X para escalonar la llegada
+        debugZombies[0].x = GRID_END_X + 50;
+        debugZombies[1].x = GRID_END_X + 150;
+        debugZombies[2].x = GRID_END_X + 100;
+        
+        debugZombies[3].x = GRID_END_X + 400;
+        debugZombies[4].x = GRID_END_X + 500;
+        
+        debugZombies[5].x = GRID_END_X + 800;
+        debugZombies[6].x = GRID_END_X + 850;
+
+        debugZombies.forEach(z => zombies.push(z));
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
+        isDebug = true;
         // === [FIN_TRIGGER_TAREA_3.2] ===
 
         // === [TRIGGER_TAREA_4.1] ===
@@ -944,7 +1038,7 @@
 
         if (images.background) ctx.drawImage(images.background, 0, 0);
 
-        drawGrid();
+        if (isDebug) drawGrid();
 
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
         // Draw plants
@@ -1002,13 +1096,65 @@
         drawUI();
 
         // --- [INICIO_ZONA_DRAW_COOLDOWN_3.1] ---
+        // Dibujar overlay de cooldown en las semillas
+        let currentSeedX = seedRange.min;
+        
+        seeds.forEach(seed => {
+            const envolturaImg = images.envoltura;
+            
+            if (envolturaImg && seed.timer > 0) {
+                const seedWidth = envolturaImg.width;
+                const seedHeight = envolturaImg.height;
+                
+                // Calcular proporción de cooldown restante
+                const cooldownRatio = seed.timer / seed.cooldown;
+                
+                // Altura del rectángulo oscuro basado en el cooldown
+                const overlayHeight = seedHeight * cooldownRatio;
+                
+                // Dibujar rectángulo oscuro desde abajo hacia arriba
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(
+                    currentSeedX,
+                    20 + seedHeight - overlayHeight,
+                    seedWidth,
+                    overlayHeight
+                );
+            }
+            
+            currentSeedX += envolturaImg ? envolturaImg.width : 0;
+        });
+        
         // --- [FIN_ZONA_DRAW_COOLDOWN_3.1] ---
+
+        // --- [INICIO_ZONA_DRAW_PALA_PREVIEW_3.1] ---
+        // Dibujar vista previa de la pala siguiendo al cursor (encima de todo)
+        if (isShovelActive && images.pala) {
+            ctx.save();
+            const scale = 1.3;
+            const palaWidth = images.pala.width * scale;
+            const palaHeight = images.pala.height * scale;
+            
+            // Sombra para mejor visibilidad
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(images.pala, mouseX - palaWidth / 2, mouseY - palaHeight / 2, palaWidth, palaHeight);
+            ctx.restore();
+        }
+        // --- [FIN_ZONA_DRAW_PALA_PREVIEW_3.1] ---
 
         // --- [INICIO_ZONA_DRAW_PROGRESO_3.3] ---
         drawProgressBar();
         // --- [FIN_ZONA_DRAW_PROGRESO_3.3] ---
 
         // --- [INICIO_ZONA_DRAW_DEBUG_3.2] ---
+        if (isDebug) {
+            drawDebug();
+        }
         // --- [FIN_ZONA_DRAW_DEBUG_3.2] ---
 
         requestAnimationFrame(gameLoop);
@@ -1121,6 +1267,88 @@
             }
         });
     }
+
+    // --- [INICIO_ZONA_FUNC_DEBUG_3.2] ---
+    let lastFrameTime = performance.now();
+    let fps = 0;
+    let fpsUpdateCounter = 0;
+
+    function drawDebug() {
+        // Calcular FPS cada 30 frames para suavizar
+        fpsUpdateCounter++;
+        if (fpsUpdateCounter >= 30) {
+            const now = performance.now();
+            fps = Math.round(1000 / ((now - lastFrameTime) / fpsUpdateCounter));
+            lastFrameTime = now;
+            fpsUpdateCounter = 0;
+        }
+
+        // Dibujar FPS en la esquina
+        ctx.save();
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = '#00FF00';
+        ctx.textAlign = 'left';
+        ctx.fillText(`FPS: ${fps}`, 20, canvas.height - 20);
+        ctx.fillText('DEBUG MODE (D: toggle, P: pause)', 20, canvas.height - 50);
+        if (isPaused) {
+            ctx.fillStyle = '#FF0000';
+            ctx.fillText('PAUSED', 20, canvas.height - 80);
+        }
+        ctx.restore();
+
+        // Hitboxes rojos para plantas
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        plants.forEach(plant => {
+            const animData = plantAnimations[plant.currentAnim];
+            if (animData && animData.frames[plant.frame]) {
+                const img = animData.frames[plant.frame];
+                const scale = animData.scale;
+                const width = img.naturalWidth * scale;
+                const height = img.naturalHeight * scale;
+                ctx.strokeRect(plant.x - width / 2, plant.y - height / 2, width, height);
+            }
+        });
+
+        // Hitboxes rojos para zombis
+        zombies.forEach(zombie => {
+            const animData = zombieAnimations[zombie.state];
+            if (animData && animData.frames[zombie.frame]) {
+                const img = animData.frames[zombie.frame];
+                const scale = animData.scale;
+                const width = img.naturalWidth * scale;
+                const height = img.naturalHeight * scale;
+                ctx.strokeRect(zombie.x - width / 2, zombie.y - height / 2, width, height);
+            }
+        });
+
+        // Hitboxes azules para cortacéspedes
+        ctx.strokeStyle = 'blue';
+        lawnmowers.forEach(mower => {
+            if (images.cortacesped) {
+                const drawY = GRID_START_Y + (mower.row * CELL_HEIGHT) + (CELL_HEIGHT / 2) - (images.cortacesped.height / 2);
+                ctx.strokeRect(mower.x, drawY, images.cortacesped.width, images.cortacesped.height);
+            }
+        });
+
+        // Hitboxes amarillos para soles
+        ctx.strokeStyle = 'yellow';
+        suns.forEach(sun => {
+            if (sun.width > 0 && sun.height > 0) {
+                ctx.strokeRect(sun.x - sun.width / 2, sun.y - sun.height / 2, sun.width, sun.height);
+            }
+        });
+
+        // Hitboxes amarillos para guisantes
+        peas.forEach(pea => {
+            if (images.guisante) {
+                const w = images.guisante.width;
+                const h = images.guisante.height;
+                ctx.strokeRect(pea.x - w / 2, pea.y - h / 2, w, h);
+            }
+        });
+    }
+    // --- [FIN_ZONA_FUNC_DEBUG_3.2] ---
 
     init();
 
