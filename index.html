@@ -659,6 +659,43 @@
         // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
 
         // --- [INICIO_ZONA_CLICK_PALA_3.1] ---
+        // Detectar clic en la pala
+        if (mouseY >= 20 && mouseY <= 160) {
+            if (mouseX >= shovelRange.min && mouseX < shovelRange.max) {
+                isShovelActive = !isShovelActive;
+                selectedSeed = null; // Desactivar semilla si estaba seleccionada
+            }
+        }
+        
+        // Si la pala está activa y se clickea una planta, eliminarla
+        if (isShovelActive && mouseX >= GRID_START_X && mouseX < GRID_END_X &&
+            mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
+            
+            const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
+            const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
+            
+            // Verificar si hay una planta en esa celda
+            if (gridState[col][row]) {
+                const plant = gridState[col][row];
+                
+                // Marcar planta para eliminación
+                plant.markedForDeletion = true;
+                
+                // Reproducir sonido de pala
+                new Audio('recursos/sonidos/Pala.wav').play();
+                
+                // Generar partículas marrones de tierra
+                const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
+                const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+                for (let i = 0; i < 12; i++) {
+                    particles.push(new Particle(cellCenterX, cellCenterY, '#8B4513', 'circle'));
+                    particles.push(new Particle(cellCenterX, cellCenterY, '#A0522D', 'circle'));
+                }
+                
+                // Desactivar pala después de usar
+                isShovelActive = false;
+            }
+        }
         // --- [FIN_ZONA_CLICK_PALA_3.1] ---
 
         // --- [INICIO_ZONA_CLICK_PLANTAR_1.3] ---
@@ -983,6 +1020,44 @@
         drawUI();
 
         // --- [INICIO_ZONA_DRAW_COOLDOWN_3.1] ---
+        // Dibujar overlay de cooldown en las semillas
+        let currentSeedX = seedRange.min;
+        
+        seeds.forEach(seed => {
+            const envolturaImg = images.envoltura;
+            
+            if (envolturaImg && seed.timer > 0) {
+                const seedWidth = envolturaImg.width;
+                const seedHeight = envolturaImg.height;
+                
+                // Calcular proporción de cooldown restante
+                const cooldownRatio = seed.timer / seed.cooldown;
+                
+                // Altura del rectángulo oscuro basado en el cooldown
+                const overlayHeight = seedHeight * cooldownRatio;
+                
+                // Dibujar rectángulo oscuro desde abajo hacia arriba
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(
+                    currentSeedX,
+                    20 + seedHeight - overlayHeight,
+                    seedWidth,
+                    overlayHeight
+                );
+            }
+            
+            currentSeedX += envolturaImg ? envolturaImg.width : 0;
+        });
+        
+        // Indicador visual si la pala está activa
+        if (isShovelActive) {
+            const shovelCenterX = (shovelRange.min + shovelRange.max) / 2;
+            ctx.save();
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(shovelRange.min - 5, 15, shovelRange.max - shovelRange.min + 10, 150);
+            ctx.restore();
+        }
         // --- [FIN_ZONA_DRAW_COOLDOWN_3.1] ---
 
         // --- [INICIO_ZONA_DRAW_PROGRESO_3.3] ---
