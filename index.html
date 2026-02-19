@@ -511,14 +511,25 @@
             this.frame = 0;
             this.animSpeed = 2;
             this.hp = 100;
-            this.maxHp = 100;
+            if (type === 'nuez') this.hp = 4000;
+            this.maxHp = this.hp;
             this.flashTimer = 0;
             this.markedForDeletion = false;
             this.currentAnim = type; // Animación actual
             this.hasFiredThisLoop = false; // Para disparar solo una vez por ciclo
+            this.sunTimer = 0; // Para girasoles
         }
 
         update() {
+            // Lógica de Girasol
+            if (this.type === 'girasol') {
+                this.sunTimer++;
+                if (this.sunTimer >= 700) { // ~23 segundos
+                    spawnSun(this.x, this.y, false);
+                    this.sunTimer = 0;
+                }
+            }
+
             // Lógica especial para lanzaguisantes
             if (this.type === 'guisante') {
                 // Detectar zombis en la misma fila a la derecha
@@ -647,6 +658,7 @@
 
     canvas.addEventListener('mousedown', (e) => {
         if (isPaused) return;
+        if (e.button !== 0) return; // Solo permitir clic izquierdo para estas acciones
 
         // --- [INICIO_ZONA_CLICK_SOLES_1.1] ---
         for (const sun of suns) {
@@ -659,6 +671,43 @@
         // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
 
         // --- [INICIO_ZONA_CLICK_PALA_3.1] ---
+        // Detectar clic en la pala
+        if (mouseY >= 20 && mouseY <= 160) {
+            if (mouseX >= shovelRange.min && mouseX < shovelRange.max) {
+                isShovelActive = !isShovelActive;
+                selectedSeed = null; // Desactivar semilla si estaba seleccionada
+            }
+        }
+        
+        // Si la pala está activa y se clickea una planta, eliminarla
+        if (isShovelActive && mouseX >= GRID_START_X && mouseX < GRID_END_X &&
+            mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
+            
+            const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
+            const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
+            
+            // Verificar si hay una planta en esa celda
+            if (gridState[col][row]) {
+                const plant = gridState[col][row];
+                
+                // Marcar planta para eliminación
+                plant.markedForDeletion = true;
+                
+                // Reproducir sonido de escarbar
+                new Audio('recursos/sonidos/Escarbar.wav').play();
+                
+                // Generar partículas marrones de tierra
+                const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
+                const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+                for (let i = 0; i < 12; i++) {
+                    particles.push(new Particle(cellCenterX, cellCenterY, '#8B4513', 'circle'));
+                    particles.push(new Particle(cellCenterX, cellCenterY, '#A0522D', 'circle'));
+                }
+                
+                // Desactivar pala después de usar
+                isShovelActive = false;
+            }
+        }
         // --- [FIN_ZONA_CLICK_PALA_3.1] ---
 
         // --- [INICIO_ZONA_CLICK_PLANTAR_1.3] ---
@@ -733,6 +782,15 @@
         // --- [FIN_ZONA_CLICK_SEMILLAS_1.2] ---
     });
 
+    // --- [INICIO_ZONA_CLICK_DERECHO_3.1] ---
+    // Clic derecho cancela la selección de semilla y pala
+    canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); // Evitar menú contextual del navegador
+        selectedSeed = null;
+        isShovelActive = false;
+    });
+    // --- [FIN_ZONA_CLICK_DERECHO_3.1] ---
+
     window.addEventListener('keydown', (e) => {
         // --- [INICIO_ZONA_TECLAS_DEBUG_3.2] ---
         if (e.key === 'p' || e.key === 'P') {
@@ -781,45 +839,70 @@
 
     function initGame() {
         // === [TRIGGER_TAREA_1.1] ===
-        spawnSun(200, 300, false);
-        spawnSun(400, 300, false);
+        //spawnSun(200, 300, false);
+        //spawnSun(400, 300, false);
         // === [FIN_TRIGGER_TAREA_1.1] ===
 
         // === [TRIGGER_TAREA_1.3] ===
-        sunAmount = 5000;
+        sunAmount = 500; // Iniciar con soles razonables
         // === [FIN_TRIGGER_TAREA_1.3] ===
 
         // === [TRIGGER_TAREA_2.1] ===
-        zombies.push(new Zombie());
+        // Zombi inicial eliminado, usaremos el array de debug
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
-        // Debug: más lanzaguisantes + más zombis (espaciados) para testear disparos/colisiones
+        // Configuración inicial visualmente rica
         const debugPlants = [
-            new Plant('guisante', 0, 0),
-            new Plant('guisante', 0, 2),
-            new Plant('guisante', 0, 4),
-            new Plant('guisante', 1, 1),
-            new Plant('guisante', 1, 3)
+            // Girasoles en la retaguardia
+            new Plant('girasol', 0, 0),
+            new Plant('girasol', 0, 1),
+            new Plant('girasol', 0, 2),
+            new Plant('girasol', 0, 3),
+            new Plant('girasol', 0, 4),
+            
+            // Algunos guisantes defendiendo
+            new Plant('guisante', 1, 0),
+            new Plant('guisante', 1, 2),
+            new Plant('guisante', 2, 1),
+            new Plant('guisante', 2, 3),
+            new Plant('guisante', 2, 4),
+
+            // Nueces protegiendo flancos
+            new Plant('nuez', 4, 1),
+            new Plant('nuez', 4, 3)
         ];
+        
         for (const p of debugPlants) {
             plants.push(p);
             gridState[p.col][p.row] = p;
         }
 
         const debugZombies = [
+            // Primera oleada dispersa
             new Zombie(0),
-            new Zombie(1),
             new Zombie(2),
-            new Zombie(3),
             new Zombie(4),
+            // Segunda oleada más atrás
+            new Zombie(1),
+            new Zombie(3),
+            // Grupo denso al final
             new Zombie(2),
-            new Zombie(3)
+            new Zombie(2)
         ];
-        debugZombies.forEach((z, i) => {
-            z.x += i * 140;
-            zombies.push(z);
-        });
+        
+        // Ajustar posiciones X para escalonar la llegada
+        debugZombies[0].x = GRID_END_X + 50;
+        debugZombies[1].x = GRID_END_X + 150;
+        debugZombies[2].x = GRID_END_X + 100;
+        
+        debugZombies[3].x = GRID_END_X + 400;
+        debugZombies[4].x = GRID_END_X + 500;
+        
+        debugZombies[5].x = GRID_END_X + 800;
+        debugZombies[6].x = GRID_END_X + 850;
+
+        debugZombies.forEach(z => zombies.push(z));
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
@@ -994,7 +1077,56 @@
         drawUI();
 
         // --- [INICIO_ZONA_DRAW_COOLDOWN_3.1] ---
+        // Dibujar overlay de cooldown en las semillas
+        let currentSeedX = seedRange.min;
+        
+        seeds.forEach(seed => {
+            const envolturaImg = images.envoltura;
+            
+            if (envolturaImg && seed.timer > 0) {
+                const seedWidth = envolturaImg.width;
+                const seedHeight = envolturaImg.height;
+                
+                // Calcular proporción de cooldown restante
+                const cooldownRatio = seed.timer / seed.cooldown;
+                
+                // Altura del rectángulo oscuro basado en el cooldown
+                const overlayHeight = seedHeight * cooldownRatio;
+                
+                // Dibujar rectángulo oscuro desde abajo hacia arriba
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(
+                    currentSeedX,
+                    20 + seedHeight - overlayHeight,
+                    seedWidth,
+                    overlayHeight
+                );
+            }
+            
+            currentSeedX += envolturaImg ? envolturaImg.width : 0;
+        });
+        
         // --- [FIN_ZONA_DRAW_COOLDOWN_3.1] ---
+
+        // --- [INICIO_ZONA_DRAW_PALA_PREVIEW_3.1] ---
+        // Dibujar vista previa de la pala siguiendo al cursor (encima de todo)
+        if (isShovelActive && images.pala) {
+            ctx.save();
+            const scale = 1.3;
+            const palaWidth = images.pala.width * scale;
+            const palaHeight = images.pala.height * scale;
+            
+            // Sombra para mejor visibilidad
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(images.pala, mouseX - palaWidth / 2, mouseY - palaHeight / 2, palaWidth, palaHeight);
+            ctx.restore();
+        }
+        // --- [FIN_ZONA_DRAW_PALA_PREVIEW_3.1] ---
 
         // --- [INICIO_ZONA_DRAW_PROGRESO_3.3] ---
         // --- [FIN_ZONA_DRAW_PROGRESO_3.3] ---
