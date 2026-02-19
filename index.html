@@ -671,18 +671,22 @@
             
             // Verificar que la celda esté vacía
             if (!gridState[col][row]) {
-                // Verificar soles suficientes y cooldown
-                if (sunAmount >= selectedSeed.cost && selectedSeed.timer <= 0) {
-                    // Descontar costo
-                    sunAmount -= selectedSeed.cost;
+                // Verificar soles suficientes y cooldown (ignorar en modo debug)
+                if (isDebug || (sunAmount >= selectedSeed.cost && selectedSeed.timer <= 0)) {
+                    // Descontar costo (solo si no está en modo debug)
+                    if (!isDebug) {
+                        sunAmount -= selectedSeed.cost;
+                    }
                     
                     // Crear planta
                     const plant = new Plant(selectedSeed.name, col, row);
                     plants.push(plant);
                     gridState[col][row] = plant;
                     
-                    // Reiniciar cooldown
-                    selectedSeed.timer = selectedSeed.cooldown;
+                    // Reiniciar cooldown (solo si no está en modo debug)
+                    if (!isDebug) {
+                        selectedSeed.timer = selectedSeed.cooldown;
+                    }
                     
                     // FloatingText rojo con el costo
                     const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
@@ -731,6 +735,12 @@
 
     window.addEventListener('keydown', (e) => {
         // --- [INICIO_ZONA_TECLAS_DEBUG_3.2] ---
+        if (e.key === 'p' || e.key === 'P') {
+            isPaused = !isPaused;
+        }
+        if (e.key === 'd' || e.key === 'D') {
+            isDebug = !isDebug;
+        }
         // --- [FIN_ZONA_TECLAS_DEBUG_3.2] ---
     });
 
@@ -813,6 +823,7 @@
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
+        isDebug = true;
         // === [FIN_TRIGGER_TAREA_3.2] ===
 
         // === [TRIGGER_TAREA_4.1] ===
@@ -925,7 +936,7 @@
 
         if (images.background) ctx.drawImage(images.background, 0, 0);
 
-        drawGrid();
+        if (isDebug) drawGrid();
 
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
         // Draw plants
@@ -989,6 +1000,9 @@
         // --- [FIN_ZONA_DRAW_PROGRESO_3.3] ---
 
         // --- [INICIO_ZONA_DRAW_DEBUG_3.2] ---
+        if (isDebug) {
+            drawDebug();
+        }
         // --- [FIN_ZONA_DRAW_DEBUG_3.2] ---
 
         requestAnimationFrame(gameLoop);
@@ -1064,6 +1078,88 @@
             }
         });
     }
+
+    // --- [INICIO_ZONA_FUNC_DEBUG_3.2] ---
+    let lastFrameTime = performance.now();
+    let fps = 0;
+    let fpsUpdateCounter = 0;
+
+    function drawDebug() {
+        // Calcular FPS cada 30 frames para suavizar
+        fpsUpdateCounter++;
+        if (fpsUpdateCounter >= 30) {
+            const now = performance.now();
+            fps = Math.round(1000 / ((now - lastFrameTime) / fpsUpdateCounter));
+            lastFrameTime = now;
+            fpsUpdateCounter = 0;
+        }
+
+        // Dibujar FPS en la esquina
+        ctx.save();
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = '#00FF00';
+        ctx.textAlign = 'left';
+        ctx.fillText(`FPS: ${fps}`, 20, canvas.height - 20);
+        ctx.fillText('DEBUG MODE (D: toggle, P: pause)', 20, canvas.height - 50);
+        if (isPaused) {
+            ctx.fillStyle = '#FF0000';
+            ctx.fillText('PAUSED', 20, canvas.height - 80);
+        }
+        ctx.restore();
+
+        // Hitboxes rojos para plantas
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        plants.forEach(plant => {
+            const animData = plantAnimations[plant.currentAnim];
+            if (animData && animData.frames[plant.frame]) {
+                const img = animData.frames[plant.frame];
+                const scale = animData.scale;
+                const width = img.naturalWidth * scale;
+                const height = img.naturalHeight * scale;
+                ctx.strokeRect(plant.x - width / 2, plant.y - height / 2, width, height);
+            }
+        });
+
+        // Hitboxes rojos para zombis
+        zombies.forEach(zombie => {
+            const animData = zombieAnimations[zombie.state];
+            if (animData && animData.frames[zombie.frame]) {
+                const img = animData.frames[zombie.frame];
+                const scale = animData.scale;
+                const width = img.naturalWidth * scale;
+                const height = img.naturalHeight * scale;
+                ctx.strokeRect(zombie.x - width / 2, zombie.y - height / 2, width, height);
+            }
+        });
+
+        // Hitboxes azules para cortacéspedes
+        ctx.strokeStyle = 'blue';
+        lawnmowers.forEach(mower => {
+            if (images.cortacesped) {
+                const drawY = GRID_START_Y + (mower.row * CELL_HEIGHT) + (CELL_HEIGHT / 2) - (images.cortacesped.height / 2);
+                ctx.strokeRect(mower.x, drawY, images.cortacesped.width, images.cortacesped.height);
+            }
+        });
+
+        // Hitboxes amarillos para soles
+        ctx.strokeStyle = 'yellow';
+        suns.forEach(sun => {
+            if (sun.width > 0 && sun.height > 0) {
+                ctx.strokeRect(sun.x - sun.width / 2, sun.y - sun.height / 2, sun.width, sun.height);
+            }
+        });
+
+        // Hitboxes amarillos para guisantes
+        peas.forEach(pea => {
+            if (images.guisante) {
+                const w = images.guisante.width;
+                const h = images.guisante.height;
+                ctx.strokeRect(pea.x - w / 2, pea.y - h / 2, w, h);
+            }
+        });
+    }
+    // --- [FIN_ZONA_FUNC_DEBUG_3.2] ---
 
     init();
 
