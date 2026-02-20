@@ -674,6 +674,24 @@
         if (isPaused) return;
         if (e.button !== 0) return; 
 
+        // --- [INICIO_ZONA_CLICK_SOLES_1.1] ---
+        // Soles tienen prioridad sobre herramientas de debug
+        for (const sun of suns) {
+            if (!sun.isCollecting && sun.isClicked(mouseX, mouseY)) {
+                sun.isCollecting = true;
+                new Audio('recursos/sonidos/Recoger sol 1.wav').play();
+                
+                // --- [INICIO_ZONA_PARTICULAS_SOL_4.1] ---
+                for (let i = 0; i < 12; i++) {
+                    particles.push(new Particle(sun.x, sun.y, '#FFD700', 'spark'));
+                    particles.push(new Particle(sun.x, sun.y, '#FFFFFF', 'circle'));
+                }
+                // --- [FIN_ZONA_PARTICULAS_SOL_4.1] ---
+                break; // Si se clickea un sol, no hacer nada más (opcional, o quitar break para permitir debug click through)
+            }
+        }
+        // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
+
         // --- [INICIO_ZONA_EDIT_SOLES_4.3] ---
         if (isDebug && mouseX >= sunRange.min && mouseX <= sunRange.max && mouseY >= 0 && mouseY <= 200) {
             const newValue = prompt('Ingresa la nueva cantidad de soles:', sunAmount);
@@ -706,24 +724,7 @@
         }
         // --- [FIN_ZONA_DRAG_START_4.3] ---
 
-        // --- [INICIO_ZONA_CLICK_SOLES_1.1] ---
-        for (const sun of suns) {
-            if (!sun.isCollecting && sun.isClicked(mouseX, mouseY)) {
-                sun.isCollecting = true;
-                new Audio('recursos/sonidos/Recoger sol 1.wav').play();
-                
-                // --- [INICIO_ZONA_PARTICULAS_SOL_4.1] ---
-                for (let i = 0; i < 12; i++) {
-                    particles.push(new Particle(sun.x, sun.y, '#FFD700', 'spark'));
-                    particles.push(new Particle(sun.x, sun.y, '#FFFFFF', 'circle'));
-                }
-                // --- [FIN_ZONA_PARTICULAS_SOL_4.1] ---
-                break;
-            }
-        }
-        // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
-
-        // --- [INICIO_ZONA_CLICK_PALA_3.1] ---
+        // --- [INICIO_ZONA_DRAG_START_4.3] ---
         if (mouseY >= 20 && mouseY <= 160) {
             if (mouseX >= shovelRange.min && mouseX < shovelRange.max) {
                 isShovelActive = !isShovelActive;
@@ -814,6 +815,14 @@
     // --- [INICIO_ZONA_DRAG_END_4.3] ---
     canvas.addEventListener('mouseup', (e) => {
         if (draggedZombie) {
+            // Reposicionar zombi en Y (Snap to row)
+            const row = Math.round((draggedZombie.y - GRID_START_Y - (CELL_HEIGHT / 2)) / CELL_HEIGHT);
+            // Asegurar que esté dentro de los límites de filas
+            const clampedRow = Math.max(0, Math.min(row, ROWS - 1));
+            
+            draggedZombie.row = clampedRow;
+            draggedZombie.y = GRID_START_Y + (clampedRow * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+            
             draggedZombie = null;
         }
     });
@@ -1314,81 +1323,8 @@
         ctx.restore();
 
         // --- [INICIO_ZONA_HITBOX_DEBUG_4.3] ---
-        // Hitboxes ajustadas para ignorar espacio vacío de sprites
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        plants.forEach(plant => {
-            const animData = plantAnimations[plant.currentAnim];
-            if (animData && animData.frames[plant.frame]) {
-                const img = animData.frames[plant.frame];
-                const scale = animData.scale;
-                const width = img.naturalWidth * scale;
-                const height = img.naturalHeight * scale;
-                
-                // Ajuste de hitbox para plantas: reducir padding
-                const hitboxPadding = 0.15; // 15% de padding a cada lado
-                const adjustedWidth = width * (1 - hitboxPadding * 2);
-                const adjustedHeight = height * (1 - hitboxPadding * 2);
-                const offsetX = width * hitboxPadding;
-                const offsetY = height * hitboxPadding;
-                
-                ctx.strokeRect(
-                    plant.x - width / 2 + offsetX,
-                    plant.y - height / 2 + offsetY,
-                    adjustedWidth,
-                    adjustedHeight
-                );
-            }
-        });
-
-        zombies.forEach(zombie => {
-            const animData = zombieAnimations[zombie.state];
-            if (animData && animData.frames[zombie.frame]) {
-                const img = animData.frames[zombie.frame];
-                const scale = animData.scale;
-                const width = img.naturalWidth * scale;
-                const height = img.naturalHeight * scale;
-                
-                // Ajuste de hitbox para zombis: reducir padding lateral
-                const hitboxPaddingX = 0.2; // 20% de padding horizontal
-                const hitboxPaddingY = 0.1; // 10% de padding vertical
-                const adjustedWidth = width * (1 - hitboxPaddingX * 2);
-                const adjustedHeight = height * (1 - hitboxPaddingY * 2);
-                const offsetX = width * hitboxPaddingX;
-                const offsetY = height * hitboxPaddingY;
-                
-                ctx.strokeRect(
-                    zombie.x - width / 2 + offsetX,
-                    zombie.y - height / 2 + offsetY,
-                    adjustedWidth,
-                    adjustedHeight
-                );
-            }
-        });
+        // Hitboxes eliminadas para dejar solo la grid
         // --- [FIN_ZONA_HITBOX_DEBUG_4.3] ---
-
-        ctx.strokeStyle = 'blue';
-        lawnmowers.forEach(mower => {
-            if (images.cortacesped) {
-                const drawY = GRID_START_Y + (mower.row * CELL_HEIGHT) + (CELL_HEIGHT / 2) - (images.cortacesped.height / 2);
-                ctx.strokeRect(mower.x, drawY, images.cortacesped.width, images.cortacesped.height);
-            }
-        });
-
-        ctx.strokeStyle = 'yellow';
-        suns.forEach(sun => {
-            if (sun.width > 0 && sun.height > 0) {
-                ctx.strokeRect(sun.x - sun.width / 2, sun.y - sun.height / 2, sun.width, sun.height);
-            }
-        });
-
-        peas.forEach(pea => {
-            if (images.guisante) {
-                const w = images.guisante.width;
-                const h = images.guisante.height;
-                ctx.strokeRect(pea.x - w / 2, pea.y - h / 2, w, h);
-            }
-        });
     }
     // --- [FIN_ZONA_FUNC_DEBUG_3.2] ---
 
