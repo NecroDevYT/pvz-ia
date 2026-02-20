@@ -852,6 +852,10 @@
         // === [FIN_TRIGGER_TAREA_4.1] ===
 
         // === [TRIGGER_TAREA_4.2] ===
+        // Dar soles suficientes para probar visualmente los 3 estados de las semillas
+        sunAmount = 150;
+        // Forzar cooldown en la nuez para ver el efecto de recarga invertido
+        seeds[2].timer = seeds[2].cooldown;
         // === [FIN_TRIGGER_TAREA_4.2] ===
 
         // === [TRIGGER_TAREA_4.3] ===
@@ -1020,24 +1024,24 @@
         seeds.forEach(seed => {
             const envolturaImg = images.envoltura;
             
-            if (envolturaImg && seed.timer > 0) {
+            // --- [INICIO_ZONA_UI_SEMILLAS_4.2] ---
+            // En Debug Mode, no dibujar cooldown visual
+            if (!isDebug && envolturaImg && seed.timer > 0) {
                 const seedWidth = envolturaImg.width;
                 const seedHeight = envolturaImg.height;
                 const cooldownRatio = seed.timer / seed.cooldown;
                 const overlayHeight = seedHeight * cooldownRatio;
-                
-                // --- [INICIO_ZONA_UI_SEMILLAS_4.2] ---
-                // IA modificará el relleno del cooldown visual aquí
-                // --- [FIN_ZONA_UI_SEMILLAS_4.2] ---
 
+                // Cooldown se revela de abajo hacia arriba
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.fillRect(
                     currentSeedX,
-                    20 + seedHeight - overlayHeight,
+                    20,
                     seedWidth,
                     overlayHeight
                 );
             }
+            // --- [FIN_ZONA_UI_SEMILLAS_4.2] ---
             currentSeedX += envolturaImg ? envolturaImg.width : 0;
         });
         // --- [FIN_ZONA_DRAW_COOLDOWN_3.1] ---
@@ -1115,11 +1119,33 @@
             const plantaImg = images[seed.imageKey];
             
             if (envolturaImg && plantaImg) {
-                const seedWidth = envolturaImg.width; 
+                const seedWidth = envolturaImg.width;
+                const isReady = isDebug || seed.timer <= 0;
+                const canAfford = isDebug || sunAmount >= seed.cost;
+
+                ctx.save();
+
+                // --- [INICIO_ZONA_GLOW_SEMILLAS_4.2] ---
+                if (isReady && canAfford) {
+                    // Resplandor sutil si la planta está lista y hay soles
+                    ctx.shadowColor = 'rgba(255, 255, 200, 0.7)';
+                    ctx.shadowBlur = 15;
+                }
+                // --- [FIN_ZONA_GLOW_SEMILLAS_4.2] ---
+
                 ctx.drawImage(envolturaImg, currentSeedX, 20);
-                
+
+                // --- [INICIO_ZONA_ALPHA_SEMILLAS_4.2] ---
+                if (isReady && !canAfford) {
+                    // Semitransparente si no hay soles suficientes
+                    ctx.globalAlpha = 0.5;
+                }
+                // --- [FIN_ZONA_ALPHA_SEMILLAS_4.2] ---
+
                 const plantaX = currentSeedX + (seedWidth / 2) - (plantaImg.width / 2);
                 ctx.drawImage(plantaImg, plantaX, 0);
+
+                ctx.restore();
                 
                 ctx.font = '25px Arial';
                 ctx.fillStyle = 'black';
