@@ -48,7 +48,14 @@
     let isDebug = false;
     let mouseX = 0;
     let mouseY = 0;
-    let lastEatSoundFrame = 0; // NUEVA VARIABLE PARA CONTROLAR SATURACIÓN
+    let lastEatSoundFrame = 0;
+    
+    // --- [INICIO_ZONA_VARIABLES_CONTROL_4.3] ---
+    // Variables para el Drag & Drop de Zombis (Tarea 4.3)
+    let draggedZombie = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    // --- [FIN_ZONA_VARIABLES_CONTROL_4.3] ---
     
     // Arrays de Entidades
     let suns = [];
@@ -57,7 +64,8 @@
     let peas = [];
     let particles = [];
     let floatingTexts = [];
-    const lawnmowers = [];
+    let lawnmowers = []; // Se actualizará en Lote 5
+    let pendingZombies = []; // Para el director de hordas
     
     // Sistema de Hordas
     const LEVEL_CONFIG = { totalZombies: 40, horde1Threshold: 20, horde2Threshold: 38, baseSpawnRate: 350 };
@@ -97,7 +105,7 @@
     ];
 
     // Estado del juego UI
-    let sunAmount = 50; 
+    let sunAmount = 200; 
     const sunRange = { min: 10, max: 200 };
     const seedRange = { min: 200, max: 1110 };
     const shovelRange = { min: 1110, max: 1237 };
@@ -107,7 +115,7 @@
     let gridState = Array.from({ length: COLS }, () => Array(ROWS).fill(null));
 
     // ==========================================
-    // 1. CLASES DE ENTIDADES (Agentes inyectan aquí)
+    // 1. CLASES DE ENTIDADES
     // ==========================================
     
     // --- [INICIO_ZONA_CLASE_SUN_1.1] ---
@@ -126,36 +134,34 @@
             this.width = 0;
             this.height = 0;
             this.markedForDeletion = false;
+            // --- [INICIO_ZONA_LIFETIMER_SOL_4.1] ---
+            // IA inyectará lógica de ciclo de vida aquí
+            // --- [FIN_ZONA_LIFETIMER_SOL_4.1] ---
         }
 
         update() {
-            // Animación
+            // --- [INICIO_ZONA_UPDATE_SOL_4.1] ---
+            // IA inyectará la lógica de desaparición por animación aquí
+            // --- [FIN_ZONA_UPDATE_SOL_4.1] ---
+
             if (frames % this.animSpeed === 0) {
                 this.frame = (this.frame + 1) % SUN_TOTAL_FRAMES;
             }
 
             if (this.isCollecting) {
-                // Lerp hacia la UI
                 this.x += (this.targetX - this.x) * 0.15;
                 this.y += (this.targetY - this.y) * 0.15;
 
-                // Llegó al destino
                 if (Math.abs(this.x - this.targetX) < 5 && Math.abs(this.y - this.targetY) < 5) {
                     sunAmount += 25;
-                    
-                    // FloatingText dorado
                     floatingTexts.push(new FloatingText('+25', this.targetX, this.targetY, '#FFD700'));
-                    
-                    // Partículas doradas
                     for (let i = 0; i < 8; i++) {
                         particles.push(new Particle(this.targetX, this.targetY, '#FFD700', 'spark'));
                         particles.push(new Particle(this.targetX, this.targetY, '#FFFF00', 'circle'));
                     }
-                    
                     this.markedForDeletion = true;
                 }
             } else if (this.isFalling) {
-                // Caída
                 if (this.y < this.finalY) {
                     this.y += this.fallSpeed;
                 } else {
@@ -283,7 +289,7 @@
             this.x = x;
             this.y = y;
             this.row = row;
-            this.speed = 6.25; // +25% velocidad
+            this.speed = 6.25; 
             this.damage = 20;
             this.width = 0;
             this.height = 0;
@@ -292,8 +298,6 @@
 
         update() {
             this.x += this.speed;
-
-            // Marcar para eliminación si sale del canvas
             if (this.x > canvas.width) {
                 this.markedForDeletion = true;
             }
@@ -314,6 +318,12 @@
     }
     // --- [FIN_ZONA_CLASE_PEA_2.2] ---
 
+    // --- [INICIO_ZONA_CLASE_LAWNMOWER_5.2] ---
+    class Lawnmower {
+        // IA inyectará la lógica y clase del cortacésped aquí en Lote 5
+    }
+    // --- [FIN_ZONA_CLASE_LAWNMOWER_5.2] ---
+
     // --- [INICIO_ZONA_CLASE_ZOMBIE_2.1] ---
     const zombieAnimations = {
         walk: { frames: [], totalFrames: 46, scale: 0.35, path: 'recursos/zombie caminata/zombie caminata', ext: '.png', padZeros: 2 },
@@ -328,27 +338,29 @@
             this.x = GRID_END_X + 100;
             this.y = GRID_START_Y + (this.row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
             this.state = 'walk';
-            this.speed = 0.6; // CAMBIO APLICADO AQUÍ
+            this.speed = 0.6;
             this.frame = 0;
             this.animSpeed = 2;
             this.hp = 100;
             this.maxHp = 100;
             this.damage = 10;
-            this.attackCooldown = 30; // Frames entre ataques
+            this.attackCooldown = 30; 
             this.attackTimer = 0;
             this.flashTimer = 0;
             this.fadeTimer = 0;
             this.targetPlant = null;
             this.markedForDeletion = false;
+            
+            // --- [INICIO_ZONA_ZOMBIE_ORGANICO_5.3] ---
+            // IA inyectará lógica de desincronización (velocidades aleatorias) aquí
+            // --- [FIN_ZONA_ZOMBIE_ORGANICO_5.3] ---
         }
 
         update() {
-            // Animación
             if (frames % this.animSpeed === 0) {
                 const animData = zombieAnimations[this.state];
                 if (animData) {
                     if (this.state === 'die' && this.frame >= animData.totalFrames - 1) {
-                        // Mantener en el último frame
                         this.frame = animData.totalFrames - 1;
                     } else {
                         this.frame = (this.frame + 1) % animData.totalFrames;
@@ -356,14 +368,9 @@
                 }
             }
 
-            // Decrementar flash timer
-            if (this.flashTimer > 0) {
-                this.flashTimer--;
-            }
+            if (this.flashTimer > 0) this.flashTimer--;
 
-            // Estados
             if (this.state === 'walk') {
-                // Buscar planta en la misma fila para comer
                 let closestPlant = null;
                 let minDistance = Infinity;
 
@@ -377,41 +384,35 @@
                     }
                 }
 
-                // Si hay una planta cerca (menos de 60px), cambiar a estado eat
                 if (closestPlant && minDistance < 60) {
                     this.state = 'eat';
                     this.targetPlant = closestPlant;
                     this.frame = 0;
                 } else {
-                    // Seguir caminando
                     this.x -= this.speed;
                 }
             } else if (this.state === 'eat') {
-                // Atacar la planta objetivo
                 if (this.targetPlant && !this.targetPlant.markedForDeletion) {
                     this.attackTimer++;
                     if (this.attackTimer >= this.attackCooldown) {
                         this.targetPlant.takeDamage(this.damage);
                         this.attackTimer = 0;
                         
-                        // Control de saturación de sonido
                         if (frames - lastEatSoundFrame > 15) {
                             const eatSound = Math.floor(Math.random() * 3) + 1;
                             const audio = new Audio(`recursos/sonidos/Zombi come ${eatSound}.wav`);
-                            audio.volume = 0.4; // Bajamos el volumen al 40%
-                            audio.play().catch(e => {}); // El catch evita errores en navegadores
+                            audio.volume = 0.4;
+                            audio.play().catch(e => {}); 
                             lastEatSoundFrame = frames;
                         }
                     }
                 } else {
-                    // La planta fue destruida, volver a caminar
                     this.state = 'walk';
                     this.targetPlant = null;
                     this.attackTimer = 0;
                     this.frame = 0;
                 }
             } else if (this.state === 'die') {
-                // Empezar a desvanecer SOLO después de terminar la animación de muerte
                 const dieAnimData = zombieAnimations.die;
                 const isLastDieFrame = dieAnimData && this.frame >= dieAnimData.totalFrames - 1;
 
@@ -423,13 +424,11 @@
                 }
             }
 
-            // Marcar para eliminación si HP <= 0 y no está en estado die
             if (this.hp <= 0 && this.state !== 'die') {
                 this.state = 'die';
                 this.frame = 0;
                 this.fadeTimer = 0;
                 
-                // Generar partículas moradas
                 for (let i = 0; i < 15; i++) {
                     particles.push(new Particle(this.x, this.y, '#663399', 'circle'));
                     particles.push(new Particle(this.x, this.y, '#4B0082', 'spark'));
@@ -449,7 +448,6 @@
 
                 ctx.save();
                 
-                // Aplicar fade si está muriendo (solo después del último frame)
                 const dieAnimData = zombieAnimations.die;
                 const isLastDieFrame = dieAnimData && this.frame >= dieAnimData.totalFrames - 1;
                 if (this.state === 'die' && isLastDieFrame) {
@@ -458,7 +456,6 @@
                 
                 ctx.drawImage(img, drawX, drawY, width, height);
 
-                // Flash blanco al recibir daño
                 if (this.flashTimer > 0) {
                     tintCanvas.width = width;
                     tintCanvas.height = height;
@@ -480,8 +477,6 @@
         takeDamage(amount) {
             this.hp -= amount;
             this.flashTimer = 4;
-            
-            // Generar FloatingText rojo con el daño
             floatingTexts.push(new FloatingText(`-${amount}`, this.x, this.y - 30, '#FF0000'));
         }
     }
@@ -524,16 +519,20 @@
             this.maxHp = this.hp;
             this.flashTimer = 0;
             this.markedForDeletion = false;
-            this.currentAnim = type; // Animación actual
-            this.hasFiredThisLoop = false; // Para disparar solo una vez por ciclo
-            this.sunTimer = 0; // Para girasoles
+            this.currentAnim = type; 
+            this.hasFiredThisLoop = false; 
+            this.sunTimer = 0; 
+            
+            // --- [INICIO_ZONA_PETACEREZA_5.1] ---
+            // IA inyectará configuraciones específicas de la cereza aquí
+            // --- [FIN_ZONA_PETACEREZA_5.1] ---
         }
 
         update() {
             // Lógica de Girasol
             if (this.type === 'girasol') {
                 this.sunTimer++;
-                if (this.sunTimer >= 700) { // ~23 segundos
+                if (this.sunTimer >= 700) { 
                     spawnSun(this.x, this.y, false);
                     this.sunTimer = 0;
                 }
@@ -541,7 +540,6 @@
 
             // Lógica especial para lanzaguisantes
             if (this.type === 'guisante') {
-                // Detectar zombis en la misma fila a la derecha
                 let hasZombieInRow = false;
                 for (const zombie of zombies) {
                     if (zombie.row === this.row && zombie.x > this.x) {
@@ -550,7 +548,6 @@
                     }
                 }
 
-                // Cambiar animación según la presencia de zombis
                 if (hasZombieInRow && this.currentAnim !== 'lg_ataque') {
                     this.currentAnim = 'lg_ataque';
                     this.frame = 0;
@@ -568,34 +565,29 @@
                     const prevFrame = this.frame;
                     this.frame = (this.frame + 1) % animData.totalFrames;
 
-                    // Disparar en el frame 27 de lg_ataque
                     if (this.currentAnim === 'lg_ataque' && this.frame === 27 && !this.hasFiredThisLoop) {
-                        // Posición de la boca del lanzaguisantes (40px hacia ARRIBA desde el centro de su celda)
                         const peaY = this.y - 40;
                         spawnPea(this.x + 30, peaY, this.row);
                         
-                        // Generar partículas de chispas amarillas en la boca
                         for (let i = 0; i < 8; i++) {
                             particles.push(new Particle(this.x + 30, peaY, '#FFFF00', 'spark'));
                             particles.push(new Particle(this.x + 30, peaY, '#ADFF2F', 'spark'));
                         }
-                        
                         this.hasFiredThisLoop = true;
                     }
 
-                    // Resetear flag al completar el ciclo
                     if (this.frame < prevFrame) {
                         this.hasFiredThisLoop = false;
                     }
+                    
+                    // --- [INICIO_ZONA_EXPLOSION_PETACEREZA_5.1] ---
+                    // IA inyectará lógica de explosión y screen shake aquí
+                    // --- [FIN_ZONA_EXPLOSION_PETACEREZA_5.1] ---
                 }
             }
 
-            // Decrementar flash timer
-            if (this.flashTimer > 0) {
-                this.flashTimer--;
-            }
+            if (this.flashTimer > 0) this.flashTimer--;
 
-            // Marcar para eliminación si HP <= 0
             if (this.hp <= 0) {
                 this.markedForDeletion = true;
             }
@@ -614,7 +606,6 @@
                 ctx.save();
                 ctx.drawImage(img, drawX, drawY, width, height);
 
-                // Flash blanco al recibir daño
                 if (this.flashTimer > 0) {
                     tintCanvas.width = width;
                     tintCanvas.height = height;
@@ -635,8 +626,6 @@
         takeDamage(amount) {
             this.hp -= amount;
             this.flashTimer = 4;
-            
-            // Generar FloatingText rojo con el daño
             floatingTexts.push(new FloatingText(`-${amount}`, this.x, this.y - 30, '#FF0000'));
         }
     }
@@ -663,104 +652,95 @@
         const rect = canvas.getBoundingClientRect();
         mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
         mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        
+        // --- [INICIO_ZONA_DRAG_MOVE_4.3] ---
+        // IA inyectará movimiento de arrastre del zombi aquí
+        // --- [FIN_ZONA_DRAG_MOVE_4.3] ---
     });
 
     canvas.addEventListener('mousedown', (e) => {
         if (isPaused) return;
-        if (e.button !== 0) return; // Solo permitir clic izquierdo para estas acciones
+        if (e.button !== 0) return; 
+
+        // --- [INICIO_ZONA_EDIT_SOLES_4.3] ---
+        // IA inyectará lógica para editar soles en Debug Mode aquí
+        // --- [FIN_ZONA_EDIT_SOLES_4.3] ---
+        
+        // --- [INICIO_ZONA_DRAG_START_4.3] ---
+        // IA inyectará selección de zombi para drag & drop aquí
+        // --- [FIN_ZONA_DRAG_START_4.3] ---
 
         // --- [INICIO_ZONA_CLICK_SOLES_1.1] ---
         for (const sun of suns) {
             if (!sun.isCollecting && sun.isClicked(mouseX, mouseY)) {
                 sun.isCollecting = true;
                 new Audio('recursos/sonidos/Recoger sol 1.wav').play();
+                
+                // --- [INICIO_ZONA_PARTICULAS_SOL_4.1] ---
+                // IA inyectará partículas rápidas al clic aquí
+                // --- [FIN_ZONA_PARTICULAS_SOL_4.1] ---
                 break;
             }
         }
         // --- [FIN_ZONA_CLICK_SOLES_1.1] ---
 
         // --- [INICIO_ZONA_CLICK_PALA_3.1] ---
-        // Detectar clic en la pala
         if (mouseY >= 20 && mouseY <= 160) {
             if (mouseX >= shovelRange.min && mouseX < shovelRange.max) {
                 isShovelActive = !isShovelActive;
-                selectedSeed = null; // Desactivar semilla si estaba seleccionada
+                selectedSeed = null; 
             }
         }
         
-        // Si la pala está activa y se clickea una planta, eliminarla
         if (isShovelActive && mouseX >= GRID_START_X && mouseX < GRID_END_X &&
             mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
             
             const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
             const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
             
-            // Verificar si hay una planta en esa celda
             if (gridState[col][row]) {
                 const plant = gridState[col][row];
-                
-                // Marcar planta para eliminación
                 plant.markedForDeletion = true;
-                
-                // Reproducir sonido de escarbar
                 new Audio('recursos/sonidos/Escarbar.wav').play();
                 
-                // Generar partículas marrones de tierra
                 const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
                 const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
                 for (let i = 0; i < 12; i++) {
                     particles.push(new Particle(cellCenterX, cellCenterY, '#8B4513', 'circle'));
                     particles.push(new Particle(cellCenterX, cellCenterY, '#A0522D', 'circle'));
                 }
-                
-                // Desactivar pala después de usar
                 isShovelActive = false;
             }
         }
         // --- [FIN_ZONA_CLICK_PALA_3.1] ---
 
         // --- [INICIO_ZONA_CLICK_PLANTAR_1.3] ---
-        // Lógica de plantado
         if (selectedSeed && mouseX >= GRID_START_X && mouseX < GRID_END_X && 
             mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
             
             const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
             const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
             
-            // Verificar que la celda esté vacía
             if (!gridState[col][row]) {
-                // Verificar soles suficientes y cooldown (ignorar en modo debug)
                 if (isDebug || (sunAmount >= selectedSeed.cost && selectedSeed.timer <= 0)) {
-                    // Descontar costo (solo si no está en modo debug)
-                    if (!isDebug) {
-                        sunAmount -= selectedSeed.cost;
-                    }
+                    if (!isDebug) sunAmount -= selectedSeed.cost;
                     
-                    // Crear planta
                     const plant = new Plant(selectedSeed.name, col, row);
                     plants.push(plant);
                     gridState[col][row] = plant;
                     
-                    // Reiniciar cooldown (solo si no está en modo debug)
-                    if (!isDebug) {
-                        selectedSeed.timer = selectedSeed.cooldown;
-                    }
+                    if (!isDebug) selectedSeed.timer = selectedSeed.cooldown;
                     
-                    // FloatingText rojo con el costo
                     const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
                     const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
                     floatingTexts.push(new FloatingText(`-${selectedSeed.cost}`, cellCenterX, cellCenterY - 50, '#FF0000'));
                     
-                    // Sonido de plantar
                     new Audio('recursos/sonidos/Plantar.wav').play();
                     
-                    // Partículas de tierra
                     for (let i = 0; i < 10; i++) {
                         particles.push(new Particle(cellCenterX, cellCenterY, '#8B4513', 'circle'));
                         particles.push(new Particle(cellCenterX, cellCenterY, '#A0522D', 'circle'));
                     }
-                    
-                    // Deseleccionar semilla
                     selectedSeed = null;
                 }
             }
@@ -768,20 +748,16 @@
         // --- [FIN_ZONA_CLICK_PLANTAR_1.3] ---
 
         // --- [INICIO_ZONA_CLICK_SEMILLAS_1.2] ---
-        // Detectar clic en semillas de la barra superior
         if (mouseY >= 20 && mouseY <= 160) {
-            // Verificar si el clic está en el rango de semillas
             if (mouseX >= seedRange.min && mouseX < seedRange.max) {
                 let currentSeedX = seedRange.min;
                 const envolturaWidth = images.envoltura ? images.envoltura.width : 0;
                 
-                // Calcular qué semilla fue clickeada
                 for (let i = 0; i < seeds.length; i++) {
                     const seedEndX = currentSeedX + envolturaWidth;
                     if (mouseX >= currentSeedX && mouseX < seedEndX) {
-                        // Seleccionar esta semilla
                         selectedSeed = seeds[i];
-                        isShovelActive = false; // Desactivar pala si estaba activa
+                        isShovelActive = false;
                         break;
                     }
                     currentSeedX += envolturaWidth;
@@ -791,10 +767,15 @@
         // --- [FIN_ZONA_CLICK_SEMILLAS_1.2] ---
     });
 
+    // --- [INICIO_ZONA_DRAG_END_4.3] ---
+    canvas.addEventListener('mouseup', (e) => {
+        // IA inyectará lógica de soltar el zombi (Drag & Drop) aquí
+    });
+    // --- [FIN_ZONA_DRAG_END_4.3] ---
+
     // --- [INICIO_ZONA_CLICK_DERECHO_3.1] ---
-    // Clic derecho cancela la selección de semilla y pala
     canvas.addEventListener('contextmenu', (e) => {
-        e.preventDefault(); // Evitar menú contextual del navegador
+        e.preventDefault(); 
         selectedSeed = null;
         isShovelActive = false;
     });
@@ -802,12 +783,8 @@
 
     window.addEventListener('keydown', (e) => {
         // --- [INICIO_ZONA_TECLAS_DEBUG_3.2] ---
-        if (e.key === 'p' || e.key === 'P') {
-            isPaused = !isPaused;
-        }
-        if (e.key === 'd' || e.key === 'D') {
-            isDebug = !isDebug;
-        }
+        if (e.key === 'p' || e.key === 'P') isPaused = !isPaused;
+        if (e.key === 'd' || e.key === 'D') isDebug = !isDebug;
         // --- [FIN_ZONA_TECLAS_DEBUG_3.2] ---
     });
 
@@ -815,6 +792,7 @@
     // 3. INICIALIZACIÓN
     // ==========================================
     function init() {
+        // Inicialización temporal, la IA la modificará en Tarea 5.2
         for (let i = 0; i < ROWS; i++) {
             lawnmowers.push({
                 x: -70,
@@ -823,7 +801,6 @@
                 active: false
             });
         }
-        
         loadImages();
     }
 
@@ -848,77 +825,43 @@
 
     function initGame() {
         // === [TRIGGER_TAREA_1.1] ===
-
         // === [FIN_TRIGGER_TAREA_1.1] ===
 
         // === [TRIGGER_TAREA_1.3] ===
-        sunAmount = 500; // Iniciar con soles razonables
         // === [FIN_TRIGGER_TAREA_1.3] ===
 
         // === [TRIGGER_TAREA_2.1] ===
-        // Zombi inicial eliminado, usaremos el array de debug
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
-        // Configuración inicial visualmente rica
-        const debugPlants = [
-            // Girasoles en la retaguardia
-            new Plant('girasol', 0, 0),
-            new Plant('girasol', 0, 1),
-            new Plant('girasol', 0, 2),
-            new Plant('girasol', 0, 3),
-            new Plant('girasol', 0, 4),
-            
-            // Algunos guisantes defendiendo
-            new Plant('guisante', 1, 0),
-            new Plant('guisante', 1, 2),
-            new Plant('guisante', 2, 1),
-            new Plant('guisante', 2, 3),
-            new Plant('guisante', 2, 4),
-
-            // Nueces protegiendo flancos
-            new Plant('nuez', 4, 1),
-            new Plant('nuez', 4, 3)
-        ];
-        
-        for (const p of debugPlants) {
-            plants.push(p);
-            gridState[p.col][p.row] = p;
-        }
-
         const debugZombies = [
-            // Primera oleada dispersa
-            new Zombie(0),
-            new Zombie(2),
-            new Zombie(4),
-            // Segunda oleada más atrás
-            new Zombie(1),
-            new Zombie(3),
-            // Grupo denso al final
-            new Zombie(2),
-            new Zombie(2)
+            new Zombie(0), new Zombie(2), new Zombie(4),
+            new Zombie(1), new Zombie(3),
+            new Zombie(2), new Zombie(2)
         ];
-        
-        // Ajustar posiciones X para escalonar la llegada
-        debugZombies[0].x = GRID_END_X + 50;
-        debugZombies[1].x = GRID_END_X + 150;
-        debugZombies[2].x = GRID_END_X + 100;
-        
-        debugZombies[3].x = GRID_END_X + 400;
-        debugZombies[4].x = GRID_END_X + 500;
-        
-        debugZombies[5].x = GRID_END_X + 800;
-        debugZombies[6].x = GRID_END_X + 850;
-
+        debugZombies[0].x = GRID_END_X + 50; debugZombies[1].x = GRID_END_X + 50; debugZombies[2].x = GRID_END_X + 50;
+        debugZombies[3].x = GRID_END_X + 50; debugZombies[4].x = GRID_END_X + 50;
+        debugZombies[5].x = GRID_END_X + 50; debugZombies[6].x = GRID_END_X + 50;
         debugZombies.forEach(z => zombies.push(z));
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
-
         // === [FIN_TRIGGER_TAREA_3.2] ===
 
         // === [TRIGGER_TAREA_4.1] ===
         // === [FIN_TRIGGER_TAREA_4.1] ===
+
+        // === [TRIGGER_TAREA_4.2] ===
+        // === [FIN_TRIGGER_TAREA_4.2] ===
+
+        // === [TRIGGER_TAREA_4.3] ===
+        // === [FIN_TRIGGER_TAREA_4.3] ===
+        
+        // === [TRIGGER_TAREA_5.1] ===
+        // === [FIN_TRIGGER_TAREA_5.1] ===
+
+        // === [TRIGGER_TAREA_5.2] ===
+        // === [FIN_TRIGGER_TAREA_5.2] ===
 
         requestAnimationFrame(gameLoop);
     }
@@ -928,35 +871,23 @@
     // ==========================================
     function checkCollisions() {
         // --- [INICIO_ZONA_COLISIONES_2.3] ---
-        // Colisión Pea vs Zombie
         for (const pea of peas) {
             if (pea.markedForDeletion) continue;
-            
             for (const z of zombies) {
                 if (z.markedForDeletion || z.state === 'die') continue;
-                
-                // Solo verificar si están en la misma fila
                 if (pea.row !== z.row) continue;
                 
-                // Verificar colisión con margen de 40px
                 const distance = Math.abs(pea.x - z.x);
                 if (distance < 40) {
-                    // Aplicar daño al zombi
                     z.takeDamage(20);
-                    
-                    // Marcar guisante para borrado
                     pea.markedForDeletion = true;
-                    
-                    // Reproducir sonido de impacto
                     new Audio('recursos/sonidos/Colision de guisante.mp3').play();
                     
-                    // Generar partículas verdes en el punto de impacto
                     for (let i = 0; i < 6; i++) {
                         particles.push(new Particle(pea.x, pea.y, '#33FF33', 'circle'));
                         particles.push(new Particle(pea.x, pea.y, '#00CC00', 'spark'));
                     }
-                    
-                    break; // Un guisante solo golpea a un zombi
+                    break;
                 }
             }
         }
@@ -965,47 +896,36 @@
 
     function updateGame() {
         // --- [INICIO_ZONA_UPDATE_ENTIDADES] ---
-        // Update suns
         suns.forEach(sun => sun.update());
         suns = suns.filter(sun => !sun.markedForDeletion);
 
-        // Update floating texts
         floatingTexts.forEach(ft => ft.update());
         floatingTexts = floatingTexts.filter(ft => !ft.markedForDeletion);
 
-        // Update particles
         particles.forEach(p => p.update());
         particles = particles.filter(p => !p.markedForDeletion);
 
-        // Update plants
         plants.forEach(plant => plant.update());
         plants = plants.filter(plant => {
             if (plant.markedForDeletion) {
-                // Limpiar gridState
                 gridState[plant.col][plant.row] = null;
                 return false;
             }
             return true;
         });
 
-        // Update seed cooldowns
         seeds.forEach(seed => {
-            if (seed.timer > 0) {
-                seed.timer--;
-            }
+            if (seed.timer > 0) seed.timer--;
         });
 
-        // Update zombies
         zombies.forEach(zombie => zombie.update());
         zombies = zombies.filter(zombie => !zombie.markedForDeletion);
 
-        // Update peas
         peas.forEach(pea => pea.update());
         peas = peas.filter(pea => !pea.markedForDeletion);
         // --- [FIN_ZONA_UPDATE_ENTIDADES] ---
 
         // === [TRIGGER_TAREA_3.3] ===
-        // Dummy trigger: Simular avance rápido del progreso
         if (frames % 30 === 0) {
             zombiesSpawned++;
             if (zombiesSpawned > LEVEL_CONFIG.totalZombies) {
@@ -1013,9 +933,7 @@
             }
         }
         
-        // Bucle de gruñidos aleatorios de zombis
         if (frames % 180 === 0 && zombies.length > 0) {
-            // 70% de probabilidad
             if (Math.random() < 0.7) {
                 const groanNum = Math.floor(Math.random() * 5) + 1;
                 const audio = new Audio(`recursos/sonidos/Gruñido de zombi ${groanNum}.wav`);
@@ -1025,13 +943,23 @@
         }
         // === [FIN_TRIGGER_TAREA_3.3] ===
 
+        // --- [INICIO_ZONA_SPAWN_SOLES_4.1] ---
+        // IA inyectará spawner automático de soles aquí
+        // --- [FIN_ZONA_SPAWN_SOLES_4.1] ---
+
         // --- [INICIO_ZONA_SPAWN_NORMAL_2.1] ---
         // --- [FIN_ZONA_SPAWN_NORMAL_2.1] ---
 
         // --- [INICIO_ZONA_SPAWN_HORDAS_4.2] ---
+        // IA inyectará lógica del director de hordas aquí
         // --- [FIN_ZONA_SPAWN_HORDAS_4.2] ---
 
         checkCollisions();
+
+        // --- [INICIO_ZONA_CONDICIONES_FINALES_5.3] ---
+        // IA inyectará las condiciones de Victoria y Derrota aquí
+        // --- [FIN_ZONA_CONDICIONES_FINALES_5.3] ---
+
         frames++;
     }
 
@@ -1048,41 +976,25 @@
         if (isDebug) drawGrid();
 
         // --- [INICIO_ZONA_DRAW_ENTIDADES] ---
-        // Draw plants
         plants.forEach(plant => plant.draw());
-
-        // Draw zombies
         zombies.forEach(zombie => zombie.draw());
-
-        // Draw peas
         peas.forEach(pea => pea.draw());
-
-        // Draw suns
         suns.forEach(sun => sun.draw());
-
-        // Draw particles
         particles.forEach(p => p.draw());
-
-        // Draw floating texts
         floatingTexts.forEach(ft => ft.draw());
         // --- [FIN_ZONA_DRAW_ENTIDADES] ---
 
         drawLawnmowers();
 
         // --- [INICIO_ZONA_DRAW_FANTASMA_1.2] ---
-        // Dibujar planta fantasma si hay una semilla seleccionada
         if (selectedSeed && mouseX >= GRID_START_X && mouseX < GRID_END_X && 
             mouseY >= GRID_START_Y && mouseY < GRID_END_Y) {
             
-            // Calcular la celda sobre la que está el mouse
             const col = Math.floor((mouseX - GRID_START_X) / CELL_WIDTH);
             const row = Math.floor((mouseY - GRID_START_Y) / CELL_HEIGHT);
-            
-            // Calcular el centro de la celda para hacer snap
             const cellCenterX = GRID_START_X + (col * CELL_WIDTH) + (CELL_WIDTH / 2);
             const cellCenterY = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
             
-            // Dibujar la imagen de la semilla con transparencia como fantasma
             const animData = plantAnimations[selectedSeed.name];
             if (animData && animData.frames.length > 0 && animData.frames[0]) {
                 const plantImg = animData.frames[0];
@@ -1103,7 +1015,6 @@
         drawUI();
 
         // --- [INICIO_ZONA_DRAW_COOLDOWN_3.1] ---
-        // Dibujar overlay de cooldown en las semillas
         let currentSeedX = seedRange.min;
         
         seeds.forEach(seed => {
@@ -1112,14 +1023,13 @@
             if (envolturaImg && seed.timer > 0) {
                 const seedWidth = envolturaImg.width;
                 const seedHeight = envolturaImg.height;
-                
-                // Calcular proporción de cooldown restante
                 const cooldownRatio = seed.timer / seed.cooldown;
-                
-                // Altura del rectángulo oscuro basado en el cooldown
                 const overlayHeight = seedHeight * cooldownRatio;
                 
-                // Dibujar rectángulo oscuro desde abajo hacia arriba
+                // --- [INICIO_ZONA_UI_SEMILLAS_4.2] ---
+                // IA modificará el relleno del cooldown visual aquí
+                // --- [FIN_ZONA_UI_SEMILLAS_4.2] ---
+
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.fillRect(
                     currentSeedX,
@@ -1128,21 +1038,17 @@
                     overlayHeight
                 );
             }
-            
             currentSeedX += envolturaImg ? envolturaImg.width : 0;
         });
-        
         // --- [FIN_ZONA_DRAW_COOLDOWN_3.1] ---
 
         // --- [INICIO_ZONA_DRAW_PALA_PREVIEW_3.1] ---
-        // Dibujar vista previa de la pala siguiendo al cursor (encima de todo)
         if (isShovelActive && images.pala) {
             ctx.save();
             const scale = 1.1;
             const palaWidth = images.pala.width * scale;
             const palaHeight = images.pala.height * scale;
             
-            // Sombra para mejor visibilidad
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 10;
             ctx.shadowOffsetX = 5;
@@ -1154,15 +1060,13 @@
         }
         // --- [FIN_ZONA_DRAW_PALA_PREVIEW_3.1] ---
 
-        // --- [INICIO_ZONA_DRAW_PROGRESO_3.3] ---
         drawProgressBar();
-        // --- [FIN_ZONA_DRAW_PROGRESO_3.3] ---
 
-        // --- [INICIO_ZONA_DRAW_DEBUG_3.2] ---
-        if (isDebug) {
-            drawDebug();
-        }
-        // --- [FIN_ZONA_DRAW_DEBUG_3.2] ---
+        if (isDebug) drawDebug();
+
+        // --- [INICIO_ZONA_DRAW_PAUSA_4.3] ---
+        // IA inyectará pantalla de overlay oscuro de PAUSADO aquí
+        // --- [FIN_ZONA_DRAW_PAUSA_4.3] ---
 
         requestAnimationFrame(gameLoop);
     }
@@ -1171,7 +1075,6 @@
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        
         for (let i = 0; i <= COLS; i++) {
             const x = GRID_START_X + (i * CELL_WIDTH);
             ctx.moveTo(x, GRID_START_Y);
@@ -1229,7 +1132,6 @@
         });
     }
 
-    // --- [INICIO_ZONA_FUNC_PROGRESO_3.3] ---
     function drawProgressBar() {
         const barImg = images.progressBar;
         const flagImg = images.progressFlag;
@@ -1237,55 +1139,36 @@
         
         if (!barImg || !flagImg || !zombieHeadImg) return;
         
-        // Posición de la barra de progreso (esquina inferior derecha)
         const barX = canvas.width - barImg.width - 20;
         const barY = canvas.height - barImg.height - 20;
         
-        // Dibujar la barra de fondo
         ctx.drawImage(barImg, barX, barY);
-        
-        // Calcular el progreso (0 a 1)
         const progress = Math.min(zombiesSpawned / LEVEL_CONFIG.totalZombies, 1);
+        const barStartX = barX + barImg.width - 20; 
+        const barEndX = barX + 40; 
         
-        // La bandera se mueve de derecha a izquierda (inicio en la derecha, final en la izquierda)
-        // El progreso va de derecha (0%) a izquierda (100%)
-        const barStartX = barX + barImg.width - 20; // Lado derecho (inicio) - Ajustado más a la derecha
-        const barEndX = barX + 40; // Lado izquierdo (fin)
-        
-        // Bandera estática en el final (izquierda)
         const flagX = barEndX - (flagImg.width / 2);
         const flagY = barY - flagImg.height + 20;
-        
-        // Dibujar la bandera
         ctx.drawImage(flagImg, flagX, flagY);
         
-        // Configuración de la cabeza del zombi (60% del tamaño)
         const headScale = 0.6;
         const headWidth = zombieHeadImg.naturalWidth * headScale;
         const headHeight = zombieHeadImg.naturalHeight * headScale;
 
-        // La cabeza del zombi se mueve con el progreso
         const zombieHeadX = barStartX - (barStartX - barEndX) * progress - (headWidth / 2);
         const zombieHeadY = barY + (barImg.height / 2) - (headHeight / 2);
         
-        // Dibujar rastro verde (desde el inicio hasta la cabeza)
-        // El rastro va desde la derecha (barStartX) hasta la posición actual de la cabeza
         ctx.save();
         ctx.fillStyle = '#00FF00';
         ctx.globalAlpha = 0.6;
-        // Ajustamos la altura del rastro para que encaje dentro de la barra
         const trailHeight = barImg.height * 0.4; 
         const trailY = barY + (barImg.height - trailHeight) / 2;
-        
-        // El rastro empieza en barStartX y termina en el centro de la cabeza
         const headCenterX = zombieHeadX + headWidth / 2;
         ctx.fillRect(headCenterX, trailY, barStartX - headCenterX, trailHeight);
         ctx.restore();
 
-        // Dibujar la cabeza del zombi
         ctx.drawImage(zombieHeadImg, zombieHeadX, zombieHeadY, headWidth, headHeight);
     }
-    // --- [FIN_ZONA_FUNC_PROGRESO_3.3] ---
 
     function drawLawnmowers() {
         lawnmowers.forEach(mower => {
@@ -1302,7 +1185,6 @@
     let fpsUpdateCounter = 0;
 
     function drawDebug() {
-        // Calcular FPS cada 30 frames para suavizar
         fpsUpdateCounter++;
         if (fpsUpdateCounter >= 30) {
             const now = performance.now();
@@ -1311,7 +1193,6 @@
             fpsUpdateCounter = 0;
         }
 
-        // Dibujar FPS en la esquina
         ctx.save();
         ctx.font = 'bold 24px Arial';
         ctx.fillStyle = '#00FF00';
@@ -1324,7 +1205,8 @@
         }
         ctx.restore();
 
-        // Hitboxes rojos para plantas
+        // --- [INICIO_ZONA_HITBOX_DEBUG_4.3] ---
+        // IA modificará cómo se dibujan las hitboxes de Zombis y Plantas aquí
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         plants.forEach(plant => {
@@ -1338,7 +1220,6 @@
             }
         });
 
-        // Hitboxes rojos para zombis
         zombies.forEach(zombie => {
             const animData = zombieAnimations[zombie.state];
             if (animData && animData.frames[zombie.frame]) {
@@ -1349,8 +1230,8 @@
                 ctx.strokeRect(zombie.x - width / 2, zombie.y - height / 2, width, height);
             }
         });
+        // --- [FIN_ZONA_HITBOX_DEBUG_4.3] ---
 
-        // Hitboxes azules para cortacéspedes
         ctx.strokeStyle = 'blue';
         lawnmowers.forEach(mower => {
             if (images.cortacesped) {
@@ -1359,7 +1240,6 @@
             }
         });
 
-        // Hitboxes amarillos para soles
         ctx.strokeStyle = 'yellow';
         suns.forEach(sun => {
             if (sun.width > 0 && sun.height > 0) {
@@ -1367,7 +1247,6 @@
             }
         });
 
-        // Hitboxes amarillos para guisantes
         peas.forEach(pea => {
             if (images.guisante) {
                 const w = images.guisante.width;

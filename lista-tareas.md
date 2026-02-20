@@ -109,28 +109,61 @@
 
 ---
 
-## 📦 LOTE 4: EL CAOS Y EL FINAL
+## 📦 LOTE 4: PULIDO VISUAL, UI Y HERRAMIENTAS DE DEPURACIÓN
 
-### TAREA 4.1: La Petacereza y Screen Shake
-* **Rama:** `feat/tarea-4.1-petacereza`
-* **Objetivo:** Explosivo de área.
+### TAREA 4.1: Ciclo de Vida de los Soles, Spawner y Feedback
+* **Rama:** `feat/tarea-4.1-pulido-soles`
+* **Objetivo:** Aparición automática, eliminación y feedback táctil de la moneda.
 * **Especificaciones:**
-  - Clase `Plant` tipo `cereza`: En el `frame === 23`, invoca `screenShake = 15`, reproducir explosión.
-  - Daño masivo (9999) en un rango de `3x3`. Zombis afectados cambian a estado `charred` (`source-in` negro) y se desvanecen.
-* **Dummy Trigger (Caja 4.1):** En `initGame()`, fuerza la aparición de un `new Plant('cereza', 4, 2)` rodeado de zombis.
+  - **Desaparición por Animación:** La eliminación del sol NO debe depender de su tiempo de inactividad tras la caída. Debe vincularse a su ciclo de animación. Una vez que el objeto `Sun` alcance el último fotograma de su ciclo de animación completo, debe marcarse automáticamente con `isDead = true` para eliminarse de la memoria y del canvas.
+  - **Spawner:** En `updateGame()`, instanciar automáticamente un nuevo objeto `Sun` cada 300 frames. Su `X` debe ser aleatoria dentro de los límites del jardín, su `Y` inicial en `-50` (fuera de la pantalla por arriba) y su `finalY` aleatorio dentro del pasto.
+  - **Partículas al Clic:** Al hacer clic en un sol para recogerlo, generar un efecto rápido de partículas (ej. chispas amarillas y blancas) en su posición exacta antes de que inicie su viaje hacia la UI.
+* **Dummy Trigger (Caja 4.1):** Crea un sol después de un segundo de iniciado el juego para verificar la caída como lluvia y que efectivamente desaparezcan con suavidad al terminar su animación.
 
-### TAREA 4.2: Director de Hordas, Cortacésped y Fin de Partida
-* **Rama:** `feat/tarea-4.2-hordas-cortacesped`
-* **Objetivo:** Timings de oleadas, balance de stats (PvZ 1), victoria y derrota.
+### TAREA 4.2: UI de Semillas (Estados, Recarga y Resplandor)
+* **Rama:** `feat/tarea-4.2-ui-semillas`
+* **Objetivo:** Mejorar la comunicación visual de la barra de semillas.
+* **Especificaciones:**
+  - **Efecto de Carga:** El rectángulo oscuro de cooldown (`rgba(0, 0, 0, 0.5)`) debe revelar la semilla de abajo hacia arriba a medida que `timer` se acerca a 0 (antes se realizaba de arriba hacia abajo, hay que invertir ese visual).
+  - **Falta de Soles:** Si la planta está lista (`timer <= 0`) pero el jugador NO tiene los soles suficientes, la imagen de la semilla en la UI debe renderizarse semitransparente (ej. `globalAlpha = 0.5`).
+  - **Resplandor Sutil:** Si la planta está lista Y hay soles suficientes, aplicar un resplandor (`ctx.shadowColor = 'rgba(255, 255, 200, 0.7)'`, `ctx.shadowBlur = 15`) a su ranura antes de dibujarla, reseteando el blur a `0` inmediatamente después.
+  - **Override de Depuración:** Si `isDebug === true`, se deben ignorar visual y lógicamente los costos y cooldowns. Las semillas siempre deben verse opacas, sin rectángulo oscuro, y permitir el plantado libre.
+
+### TAREA 4.3: Modo Depuración Avanzado y Pantalla de Pausa
+* **Rama:** `feat/tarea-4.3-debug-avanzado`
+* **Objetivo:** Controles de Tech Lead, manipulación de entidades y estado de pausa.
+* **Especificaciones:**
+  - **Pantalla de Pausa:** Si `isPaused === true`, dibujar un rectángulo negro semitransparente (`rgba(0,0,0,0.5)`) que cubra todo el canvas, y un texto centrado que diga "PAUSADO" en fuente grande y blanca.
+  - **Visualización de Hitboxes (SOLO VISUAL):** NO MODIFICAR las propiedades físicas ni la lógica de colisiones actual. Únicamente, cuando `isDebug === true`, ajustar los offsets (`x`, `y`, `width`, `height`) en el `ctx.strokeRect` al dibujar las cajas rojas de Zombis y Plantas para que el trazo calce mejor con el cuerpo del sprite, ignorando el espacio vacío de la imagen.
+  - **Edición de Soles en Debug:** En modo depuración, permitir modificar la cantidad de soles (ej. detectando un clic sobre el contador de soles en la UI para abrir un `prompt()` que pida el nuevo valor).
+  - **Arrastre de Zombis (Drag & Drop):** Si `isDebug === true`, permitir hacer clic sostenido sobre un zombi para arrastrarlo (actualizando su `X` e `Y` con el ratón) y soltarlo en otra posición del grid.
+
+  ## 📦 LOTE 5: EL CAOS Y EL FINAL
+
+### TAREA 5.1: La Petacereza, Screen Shake y Limpieza
+* **Rama:** `feat/tarea-5.1-petacereza`
+* **Objetivo:** Explosivo de área con destrucción precisa y vulnerabilidad.
+* **Especificaciones:**
+  - **Vulnerabilidad:** La clase `Plant` tipo `cereza` debe heredar la función `takeDamage`. Los zombis pueden comérsela mientras se infla (frames 1 al 22).
+  - **Explosión y AoE:** En el `frame === 23`, invoca `screenShake = 15`, reproduce la explosión y 80 partículas de fuego (`#FF4500`, `#FF8C00`). El daño masivo (9999) no debe ser un radio circular, sino que debe afectar a los zombis que estén en una cuadrícula de 3x3 (la misma fila `row` y las adyacentes `row - 1` y `row + 1`, y en un rango de `X` cercano).
+  - **Autodestrucción:** Inmediatamente después de aplicar el daño en el frame 23, la planta DEBE marcarse con `isDead = true` para eliminarse del grid. Zombis afectados cambian a estado `charred` (`source-in` negro) y se desvanecen.
+
+### TAREA 5.2: Director de Hordas en Columnas y Cortacésped
+* **Rama:** `feat/tarea-5.2-hordas-cortacesped`
+* **Objetivo:** Spawner avanzado y herramienta de defensa final.
+* **Especificaciones:**
+  - **Hordas en Columnas:** Al llegar a `horde1Threshold` o `horde2Threshold`, mostrar "¡GRAN HORDA DE ZOMBIS!". Pausar el spawn regular durante 240 frames (`hordeDelayTimer`). Luego, instanciar los zombis de la horda en **columnas verticales**: asígnales la misma posición `X` (ej. `canvas.width + 50` y `canvas.width + 120`) pero distribuidos en diferentes filas (`row` 0 a 4).
+  - **Cortacésped (GC):** En `initGame()`, instanciar 5 objetos `Lawnmower`, uno por cada fila en `X = -70`. Al chocar con un zombi, activar sonido, avanzar rápido y causar daño 9999 (chispas metálicas). **Regla de Limpieza:** Si `Lawnmower` supera `canvas.width`, marcarlo con `isDead = true`.
+
+### TAREA 5.3: Balance PvZ, Zombis Orgánicos y Fin de Partida
+* **Rama:** `feat/tarea-5.3-balance-fin-partida`
+* **Objetivo:** Ajustes matemáticos de PvZ 1, desincronización y estados de juego.
 * **Especificaciones:**
   - **Balance de Entidades (Ground Truth):**
-    - Daño del Guisante: `20`.
-    - HP Zombi Básico: `200` (Muere con 10 impactos).
-    - HP Plantas Base (Girasol, Lanzaguisantes): `300` (Mueren en 3 segundos de mordiscos).
-    - HP Nuez: `4000` (Resiste 40 segundos de mordiscos).
-    - Daño Zombi: `100` HP/segundo (Restar `50` HP a la planta cada `15` frames en estado `eat`).
-  - **Director de Hordas:** Al llegar a `horde1Threshold` o `horde2Threshold`, mostrar "¡GRAN HORDA DE ZOMBIS!", pausar spawn durante 240 frames (`hordeDelayTimer`), y cargar zombis en `pendingZombies`.
-  - **Cortacésped (Instanciación y GC):** En `initGame()`, instanciar 5 objetos `Lawnmower`, uno por cada fila (`row`) en la posición `X = -70`. Al chocar con un zombi, activar sonido, avanzar rápido a la derecha y causar daño 9999 con chispas metálicas. **Importante:** Cuando el `Lawnmower` supere el ancho del Canvas (`X > canvas.width`), marcarlo para borrado (`isDead = true`).
-  - **Condición de Derrota (Game Over):** En `updateGame()`, si la posición `X` de un zombi es menor a `-50` y ya no hay cortacésped disponible en esa fila, detener el bucle del juego (`isPaused = true`) y mostrar en pantalla el texto "¡LOS ZOMBIS SE COMIERON TUS CEREBROS!".
-  - **Condición de Victoria:** Si `pendingZombies.length === 0`, el array principal de zombis vivos está vacío, y ya se completaron todas las hordas del nivel, detener la partida y mostrar un texto de "¡NIVEL COMPLETADO!" en el centro.
-* **Dummy Trigger (Caja 4.2):** En la configuración, cambia temporalmente `horde1Threshold: 2`, y asigna `X = -40` a un zombi suelto sin cortacésped en su fila para forzar rápidamente la pantalla de derrota.
+    - HP Zombi Básico: `200` (10 guisantes de 20 daño).
+    - HP Planta Base: `300`.
+    - HP Nuez: `4000`.
+    - Daño Zombi: Restar `50` HP a la planta cada `15` frames en estado `eat`.
+  - **Zombis Orgánicos (Desincronización):** En el constructor de la clase `Zombie`, añade un factor aleatorio sutil a su velocidad de movimiento (ej. `this.vx = baseSpeed + (Math.random() * 0.1 - 0.05)`) y a la velocidad en la que cambian sus frames de animación (`frameDelay`). Esto evitará que varios zombis en la misma casilla se muevan y muerdan exactamente al mismo tiempo.
+  - **Condición de Derrota:** En `updateGame()`, si la posición `X` de un zombi es `< -50` y ya no hay cortacésped en su fila, aplicar `isPaused = true` y mostrar texto: "¡LOS ZOMBIS SE COMIERON TUS CEREBROS!".
+  - **Condición de Victoria:** Si `pendingZombies.length === 0`, no hay zombis vivos en el array principal y se completaron las hordas, aplicar `isPaused = true` y mostrar: "¡NIVEL COMPLETADO!".
