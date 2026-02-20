@@ -125,7 +125,7 @@
             this.y = y;
             this.isFalling = isFalling;
             this.finalY = isFalling ? y + Math.random() * 300 + 200 : y;
-            this.fallSpeed = 1.5;
+            this.fallSpeed = 1.875;
             this.isCollecting = false;
             this.targetX = 105;
             this.targetY = 100;
@@ -135,13 +135,22 @@
             this.height = 0;
             this.markedForDeletion = false;
             // --- [INICIO_ZONA_LIFETIMER_SOL_4.1] ---
-            // IA inyectará lógica de ciclo de vida aquí
+            this.hasCompletedCycle = false;
             // --- [FIN_ZONA_LIFETIMER_SOL_4.1] ---
         }
 
         update() {
             // --- [INICIO_ZONA_UPDATE_SOL_4.1] ---
-            // IA inyectará la lógica de desaparición por animación aquí
+            if (!this.isCollecting && !this.isFalling && !this.hasCompletedCycle) {
+                const prevFrame = this.frame;
+                if (frames % this.animSpeed === 0) {
+                    const nextFrame = (this.frame + 1) % SUN_TOTAL_FRAMES;
+                    if (nextFrame === 0 && prevFrame === SUN_TOTAL_FRAMES - 1) {
+                        this.hasCompletedCycle = true;
+                        this.markedForDeletion = true;
+                    }
+                }
+            }
             // --- [FIN_ZONA_UPDATE_SOL_4.1] ---
 
             if (frames % this.animSpeed === 0) {
@@ -677,7 +686,10 @@
                 new Audio('recursos/sonidos/Recoger sol 1.wav').play();
                 
                 // --- [INICIO_ZONA_PARTICULAS_SOL_4.1] ---
-                // IA inyectará partículas rápidas al clic aquí
+                for (let i = 0; i < 12; i++) {
+                    particles.push(new Particle(sun.x, sun.y, '#FFD700', 'spark'));
+                    particles.push(new Particle(sun.x, sun.y, '#FFFFFF', 'circle'));
+                }
                 // --- [FIN_ZONA_PARTICULAS_SOL_4.1] ---
                 break;
             }
@@ -843,12 +855,25 @@
         debugZombies[3].x = GRID_END_X + 50; debugZombies[4].x = GRID_END_X + 50;
         debugZombies[5].x = GRID_END_X + 50; debugZombies[6].x = GRID_END_X + 50;
         debugZombies.forEach(z => zombies.push(z));
+
+        // Segunda columna de zombis
+        const debugZombies2 = [
+            new Zombie(0), new Zombie(1), new Zombie(2),
+            new Zombie(3), new Zombie(4)
+        ];
+        debugZombies2.forEach(z => {
+            z.x = GRID_END_X + 50 + CELL_WIDTH;
+            zombies.push(z);
+        });
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
         // === [FIN_TRIGGER_TAREA_3.2] ===
 
         // === [TRIGGER_TAREA_4.1] ===
+        setTimeout(() => {
+            spawnSun(400, 200, true);
+        }, 1000);
         // === [FIN_TRIGGER_TAREA_4.1] ===
 
         // === [TRIGGER_TAREA_4.2] ===
@@ -948,7 +973,11 @@
         // === [FIN_TRIGGER_TAREA_3.3] ===
 
         // --- [INICIO_ZONA_SPAWN_SOLES_4.1] ---
-        // IA inyectará spawner automático de soles aquí
+        if (frames % 300 === 0) {
+            const randomX = GRID_START_X + Math.random() * (GRID_END_X - GRID_START_X);
+            const randomFinalY = GRID_START_Y + Math.random() * (GRID_END_Y - GRID_START_Y);
+            spawnSun(randomX, 200, true);
+        }
         // --- [FIN_ZONA_SPAWN_SOLES_4.1] ---
 
         // --- [INICIO_ZONA_SPAWN_NORMAL_2.1] ---
