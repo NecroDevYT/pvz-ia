@@ -350,10 +350,10 @@
             this.speed = 0.6;
             this.frame = 0;
             this.animSpeed = 2;
-            this.hp = 100;
-            this.maxHp = 100;
-            this.damage = 10;
-            this.attackCooldown = 30; 
+            this.hp = 200;
+            this.maxHp = 200;
+            this.damage = 50;
+            this.attackCooldown = 15; 
             this.attackTimer = 0;
             this.flashTimer = 0;
             this.fadeTimer = 0;
@@ -361,7 +361,14 @@
             this.markedForDeletion = false;
             
             // --- [INICIO_ZONA_ZOMBIE_ORGANICO_5.3] ---
-            // IA inyectará lógica de desincronización (velocidades aleatorias) aquí
+            // Desincronización: Velocidades aleatorias para comportamiento orgánico
+            const speedVariation = Math.random() * 0.1 - 0.05; // ±0.05
+            this.speed += speedVariation;
+            
+            // Variación en velocidad de animación
+            const animSpeedVariation = Math.random() > 0.5 ? 1 : 0; // -1, 0, o +1 frames
+            this.animSpeed += animSpeedVariation;
+            if (this.animSpeed < 1) this.animSpeed = 1; // Evitar valores menores a 1
             // --- [FIN_ZONA_ZOMBIE_ORGANICO_5.3] ---
         }
 
@@ -523,14 +530,14 @@
             this.y = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
             this.frame = 0;
             this.animSpeed = 2;
-            this.hp = 100;
+            this.hp = 300;
             if (type === 'nuez') this.hp = 4000;
             this.maxHp = this.hp;
             this.flashTimer = 0;
             this.markedForDeletion = false;
             this.currentAnim = type; 
             this.hasFiredThisLoop = false; 
-            this.sunTimer = 0; 
+            this.sunTimer = 0;
             
             // --- [INICIO_ZONA_PETACEREZA_5.1] ---
             // IA inyectará configuraciones específicas de la cereza aquí
@@ -1022,7 +1029,64 @@
         checkCollisions();
 
         // --- [INICIO_ZONA_CONDICIONES_FINALES_5.3] ---
-        // IA inyectará las condiciones de Victoria y Derrota aquí
+        // Condición de Derrota: Zombi cruza la línea sin cortacésped
+        for (const zombie of zombies) {
+            if (zombie.x < -50 && zombie.state !== 'die') {
+                // Verificar si hay cortacésped disponible en esta fila
+                const mowerInRow = lawnmowers.find(m => m.row === zombie.row && !m.active);
+                
+                if (!mowerInRow) {
+                    // Game Over
+                    isPaused = true;
+                    
+                    // Dibujar mensaje de derrota (se dibujará en el siguiente frame)
+                    setTimeout(() => {
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        ctx.font = 'bold 80px Arial';
+                        ctx.fillStyle = '#FF0000';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 8;
+                        ctx.strokeText('¡LOS ZOMBIS SE COMIERON TUS CEREBROS!', canvas.width / 2, canvas.height / 2);
+                        ctx.fillText('¡LOS ZOMBIS SE COMIERON TUS CEREBROS!', canvas.width / 2, canvas.height / 2);
+                        ctx.restore();
+                    }, 100);
+                    
+                    break;
+                }
+            }
+        }
+        
+        // Condición de Victoria: Todos los zombis derrotados
+        const noLivingZombies = zombies.every(z => z.state === 'die' || z.markedForDeletion) || zombies.length === 0;
+        const noPendingZombies = pendingZombies.length === 0;
+        const hordesCompleted = zombiesSpawned >= LEVEL_CONFIG.totalZombies;
+        
+        if (noLivingZombies && noPendingZombies && hordesCompleted && !isPaused) {
+            // Victoria
+            isPaused = true;
+            
+            // Dibujar mensaje de victoria (se dibujará en el siguiente frame)
+            setTimeout(() => {
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.font = 'bold 100px Arial';
+                ctx.fillStyle = '#00FF00';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 10;
+                ctx.strokeText('¡NIVEL COMPLETADO!', canvas.width / 2, canvas.height / 2);
+                ctx.fillText('¡NIVEL COMPLETADO!', canvas.width / 2, canvas.height / 2);
+                ctx.restore();
+            }, 100);
+        }
         // --- [FIN_ZONA_CONDICIONES_FINALES_5.3] ---
 
         frames++;
