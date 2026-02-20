@@ -115,14 +115,22 @@
 * **Rama:** `feat/tarea-4.1-petacereza`
 * **Objetivo:** Explosivo de área.
 * **Especificaciones:**
-  - Clase `Plant` tipo `cereza`: En el `frame === 23`, invoca `screenShake = 15`, reproducir explosión y 80 partículas de fuego (`#FF4500`, `#FF8C00`).
-  - Daño masivo (9999) en un rango de `CELL_WIDTH * 1.5`. Zombis afectados cambian a estado `charred` (`source-in` negro) y se desvanecen.
+  - Clase `Plant` tipo `cereza`: En el `frame === 23`, invoca `screenShake = 15`, reproducir explosión.
+  - Daño masivo (9999) en un rango de `3x3`. Zombis afectados cambian a estado `charred` (`source-in` negro) y se desvanecen.
 * **Dummy Trigger (Caja 4.1):** En `initGame()`, fuerza la aparición de un `new Plant('cereza', 4, 2)` rodeado de zombis.
 
-### TAREA 4.2: Director de Hordas y Cortacésped
+### TAREA 4.2: Director de Hordas, Cortacésped y Fin de Partida
 * **Rama:** `feat/tarea-4.2-hordas-cortacesped`
-* **Objetivo:** Timings exactos de oleadas y defensa final.
+* **Objetivo:** Timings de oleadas, balance de stats (PvZ 1), victoria y derrota.
 * **Especificaciones:**
-  - Al llegar a `horde1Threshold` o `horde2Threshold`, mostrar "¡GRAN HORDA DE ZOMBIS!", pausar spawn durante 240 frames (`hordeDelayTimer`), y cargar zombis en `pendingZombies`.
-  - Clase `Lawnmower`: Al chocar con zombi en la parte izquierda, activa sonido, avanza rápido y causa daño 9999 con chispas metálicas.
-* **Dummy Trigger (Caja 4.2):** En la configuración, cambia temporalmente `horde1Threshold: 2`.
+  - **Balance de Entidades (Ground Truth):**
+    - Daño del Guisante: `20`.
+    - HP Zombi Básico: `200` (Muere con 10 impactos).
+    - HP Plantas Base (Girasol, Lanzaguisantes): `300` (Mueren en 3 segundos de mordiscos).
+    - HP Nuez: `4000` (Resiste 40 segundos de mordiscos).
+    - Daño Zombi: `100` HP/segundo (Restar `50` HP a la planta cada `15` frames en estado `eat`).
+  - **Director de Hordas:** Al llegar a `horde1Threshold` o `horde2Threshold`, mostrar "¡GRAN HORDA DE ZOMBIS!", pausar spawn durante 240 frames (`hordeDelayTimer`), y cargar zombis en `pendingZombies`.
+  - **Cortacésped (Instanciación y GC):** En `initGame()`, instanciar 5 objetos `Lawnmower`, uno por cada fila (`row`) en la posición `X = -70`. Al chocar con un zombi, activar sonido, avanzar rápido a la derecha y causar daño 9999 con chispas metálicas. **Importante:** Cuando el `Lawnmower` supere el ancho del Canvas (`X > canvas.width`), marcarlo para borrado (`isDead = true`).
+  - **Condición de Derrota (Game Over):** En `updateGame()`, si la posición `X` de un zombi es menor a `-50` y ya no hay cortacésped disponible en esa fila, detener el bucle del juego (`isPaused = true`) y mostrar en pantalla el texto "¡LOS ZOMBIS SE COMIERON TUS CEREBROS!".
+  - **Condición de Victoria:** Si `pendingZombies.length === 0`, el array principal de zombis vivos está vacío, y ya se completaron todas las hordas del nivel, detener la partida y mostrar un texto de "¡NIVEL COMPLETADO!" en el centro.
+* **Dummy Trigger (Caja 4.2):** En la configuración, cambia temporalmente `horde1Threshold: 2`, y asigna `X = -40` a un zombi suelto sin cortacésped en su fila para forzar rápidamente la pantalla de derrota.
