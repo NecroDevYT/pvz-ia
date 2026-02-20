@@ -49,6 +49,7 @@
     let mouseX = 0;
     let mouseY = 0;
     let lastEatSoundFrame = 0;
+    let screenShake = 0;
     
     // --- [INICIO_ZONA_VARIABLES_CONTROL_4.3] ---
     // Variables para el Drag & Drop de Zombis (Tarea 4.3)
@@ -81,6 +82,7 @@
         semillaGirasol: 'recursos/semilla de girasol.png',
         semillaGuisante: 'recursos/semilla de lanza guisantes.png',
         semillaNuez: 'recursos/semilla de nuez.png',
+        semillaCereza: 'recursos/semilla de cereza.png',
         cortacesped: 'recursos/cortacesped.png',
         guisante: 'recursos/guisante.png',
         progressBar: 'recursos/barra de progreso/barra.png',
@@ -101,7 +103,8 @@
     const seeds = [
         { name: 'girasol', imageKey: 'semillaGirasol', cost: 50, cooldown: 450, timer: 0 },
         { name: 'guisante', imageKey: 'semillaGuisante', cost: 100, cooldown: 450, timer: 0 },
-        { name: 'nuez', imageKey: 'semillaNuez', cost: 50, cooldown: 1800, timer: 0 }
+        { name: 'nuez', imageKey: 'semillaNuez', cost: 50, cooldown: 1800, timer: 0 },
+        { name: 'cereza', imageKey: 'semillaCereza', cost: 150, cooldown: 3000, timer: 0 }
     ];
 
     // Estado del juego UI
@@ -337,7 +340,8 @@
     const zombieAnimations = {
         walk: { frames: [], totalFrames: 46, scale: 0.35, path: 'recursos/zombie caminata/zombie caminata', ext: '.png', padZeros: 2 },
         eat: { frames: [], totalFrames: 36, scale: 0.35, path: 'recursos/zombie come/zombie come', ext: '.png', padZeros: 2 },
-        die: { frames: [], totalFrames: 50, scale: 0.35, path: 'recursos/zombie perdurbador cae/zombie perdurbador cae', ext: '.png', padZeros: 2 }
+        die: { frames: [], totalFrames: 50, scale: 0.35, path: 'recursos/zombie perdurbador cae/zombie perdurbador cae', ext: '.png', padZeros: 2 },
+        charred: { frames: [], totalFrames: 1, scale: 0.35, path: 'recursos/zombie caminata/zombie caminata', ext: '.png', padZeros: 2 }
     };
     let zombieAnimsLoaded = 0;
 
@@ -431,6 +435,11 @@
                         this.markedForDeletion = true;
                     }
                 }
+            } else if (this.state === 'charred') {
+                this.fadeTimer++;
+                if (this.fadeTimer >= 45) {
+                    this.markedForDeletion = true;
+                }
             }
 
             if (this.hp <= 0 && this.state !== 'die') {
@@ -463,20 +472,39 @@
                     ctx.globalAlpha = 1 - (this.fadeTimer / 45);
                 }
                 
-                ctx.drawImage(img, drawX, drawY, width, height);
-
-                if (this.flashTimer > 0) {
+                // Charred state: black tint and fade
+                if (this.state === 'charred') {
+                    ctx.globalAlpha = 1 - (this.fadeTimer / 45);
+                    ctx.drawImage(img, drawX, drawY, width, height);
+                    
                     tintCanvas.width = width;
                     tintCanvas.height = height;
+                    tintCtx.clearRect(0, 0, width, height);
                     tintCtx.drawImage(img, 0, 0, width, height);
                     tintCtx.globalCompositeOperation = 'source-in';
-                    tintCtx.fillStyle = 'white';
+                    tintCtx.fillStyle = 'black';
                     tintCtx.fillRect(0, 0, width, height);
                     
                     ctx.save();
-                    ctx.globalAlpha = 0.3;
+                    ctx.globalAlpha = 1 - (this.fadeTimer / 45);
                     ctx.drawImage(tintCanvas, drawX, drawY);
                     ctx.restore();
+                } else {
+                    ctx.drawImage(img, drawX, drawY, width, height);
+
+                    if (this.flashTimer > 0) {
+                        tintCanvas.width = width;
+                        tintCanvas.height = height;
+                        tintCtx.drawImage(img, 0, 0, width, height);
+                        tintCtx.globalCompositeOperation = 'source-in';
+                        tintCtx.fillStyle = 'white';
+                        tintCtx.fillRect(0, 0, width, height);
+                        
+                        ctx.save();
+                        ctx.globalAlpha = 0.3;
+                        ctx.drawImage(tintCanvas, drawX, drawY);
+                        ctx.restore();
+                    }
                 }
                 
                 ctx.restore();
@@ -510,7 +538,8 @@
         girasol: { frames: [], totalFrames: 58, scale: 0.3, path: 'recursos/girasol perturbador/girasol perturbador', ext: '.png', padZeros: 2 },
         guisante: { frames: [], totalFrames: 31, scale: 0.35, path: 'recursos/lg reposo perturbador/lg reposo perturbador', ext: '.png', padZeros: 2 },
         lg_ataque: { frames: [], totalFrames: 46, scale: 0.35, path: 'recursos/lanza guisantes ataque/lanza guisantes ataque', ext: '.png', padZeros: 2 },
-        nuez: { frames: [], totalFrames: 1, scale: 0.3, path: 'recursos/nuez/nuez', ext: '.png', padZeros: 0 }
+        nuez: { frames: [], totalFrames: 1, scale: 0.3, path: 'recursos/nuez/nuez', ext: '.png', padZeros: 0 },
+        cereza: { frames: [], totalFrames: 60, scale: 0.3, path: 'recursos/cereza/cereza', ext: '.png', padZeros: 2 }
     };
     let plantAnimsLoaded = 0;
 
@@ -533,7 +562,11 @@
             this.sunTimer = 0; 
             
             // --- [INICIO_ZONA_PETACEREZA_5.1] ---
-            // IA inyectará configuraciones específicas de la cereza aquí
+            if (type === 'cereza') {
+                this.hp = 300;
+                this.maxHp = this.hp;
+                this.animSpeed = 2;
+            }
             // --- [FIN_ZONA_PETACEREZA_5.1] ---
         }
 
@@ -590,7 +623,34 @@
                     }
                     
                     // --- [INICIO_ZONA_EXPLOSION_PETACEREZA_5.1] ---
-                    // IA inyectará lógica de explosión y screen shake aquí
+                    if (this.type === 'cereza' && this.frame === 23 && prevFrame === 22) {
+                        // Screen shake
+                        screenShake = 15;
+                        
+                        // Sonido de explosión
+                        new Audio('recursos/sonidos/Explocion cereza.wav').play();
+                        
+                        // Partículas de fuego
+                        for (let i = 0; i < 80; i++) {
+                            particles.push(new Particle(this.x, this.y, '#FF4500', 'spark'));
+                            particles.push(new Particle(this.x, this.y, '#FF8C00', 'circle'));
+                        }
+                        
+                        // Daño en área 3x3
+                        const affectedRows = [this.row - 1, this.row, this.row + 1];
+                        const xRange = CELL_WIDTH * 1.5; // Rango cercano en X
+                        
+                        for (const zombie of zombies) {
+                            if (affectedRows.includes(zombie.row) && Math.abs(zombie.x - this.x) < xRange) {
+                                zombie.takeDamage(9999);
+                                zombie.state = 'charred';
+                                zombie.frame = 0;
+                            }
+                        }
+                        
+                        // Autodestrucción
+                        this.markedForDeletion = true;
+                    }
                     // --- [FIN_ZONA_EXPLOSION_PETACEREZA_5.1] ---
                 }
             }
@@ -919,6 +979,16 @@
         // === [FIN_TRIGGER_TAREA_4.3] ===
         
         // === [TRIGGER_TAREA_5.1] ===
+        // Plantar una cereza en el centro y algunos zombis cerca para probar la explosión
+        plants.push(new Plant('cereza', 4, 2));
+        gridState[4][2] = plants[plants.length - 1];
+        
+        // Zombis cerca para probar el área de efecto 3x3
+        for (let r = 1; r <= 3; r++) {
+            const z = new Zombie(r);
+            z.x = GRID_START_X + (4 * CELL_WIDTH) + (CELL_WIDTH / 2) + 100;
+            zombies.push(z);
+        }
         // === [FIN_TRIGGER_TAREA_5.1] ===
 
         // === [TRIGGER_TAREA_5.2] ===
@@ -956,6 +1026,9 @@
     }
 
     function updateGame() {
+        // Screen shake decay
+        if (screenShake > 0) screenShake--;
+        
         // --- [INICIO_ZONA_UPDATE_ENTIDADES] ---
         suns.forEach(sun => sun.update());
         suns = suns.filter(sun => !sun.markedForDeletion);
@@ -1035,6 +1108,14 @@
         if (!isPaused) updateGame();
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Screen shake effect
+        ctx.save();
+        if (screenShake > 0) {
+            const shakeX = (Math.random() - 0.5) * screenShake;
+            const shakeY = (Math.random() - 0.5) * screenShake;
+            ctx.translate(shakeX, shakeY);
+        }
 
         if (images.background) ctx.drawImage(images.background, 0, 0);
 
@@ -1162,6 +1243,8 @@
             ctx.restore();
         }
         // --- [FIN_ZONA_DRAW_PAUSA_4.3] ---
+        
+        ctx.restore(); // Restore screen shake transform
 
         requestAnimationFrame(gameLoop);
     }
