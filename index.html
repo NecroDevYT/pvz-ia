@@ -125,7 +125,7 @@
             this.y = y;
             this.isFalling = isFalling;
             this.finalY = isFalling ? y + Math.random() * 300 + 200 : y;
-            this.fallSpeed = 1.5;
+            this.fallSpeed = 1.875;
             this.isCollecting = false;
             this.targetX = 105;
             this.targetY = 100;
@@ -855,6 +855,16 @@
         debugZombies[3].x = GRID_END_X + 50; debugZombies[4].x = GRID_END_X + 50;
         debugZombies[5].x = GRID_END_X + 50; debugZombies[6].x = GRID_END_X + 50;
         debugZombies.forEach(z => zombies.push(z));
+
+        // Segunda columna de zombis
+        const debugZombies2 = [
+            new Zombie(0), new Zombie(1), new Zombie(2),
+            new Zombie(3), new Zombie(4)
+        ];
+        debugZombies2.forEach(z => {
+            z.x = GRID_END_X + 50 + CELL_WIDTH;
+            zombies.push(z);
+        });
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
@@ -862,7 +872,7 @@
 
         // === [TRIGGER_TAREA_4.1] ===
         setTimeout(() => {
-            spawnSun(400, -50, true);
+            spawnSun(400, 200, true);
         }, 1000);
         // === [FIN_TRIGGER_TAREA_4.1] ===
 
@@ -962,7 +972,7 @@
         if (frames % 300 === 0) {
             const randomX = GRID_START_X + Math.random() * (GRID_END_X - GRID_START_X);
             const randomFinalY = GRID_START_Y + Math.random() * (GRID_END_Y - GRID_START_Y);
-            spawnSun(randomX, -50, true);
+            spawnSun(randomX, 200, true);
         }
         // --- [FIN_ZONA_SPAWN_SOLES_4.1] ---
 
