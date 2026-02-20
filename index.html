@@ -71,6 +71,15 @@
     const LEVEL_CONFIG = { totalZombies: 40, horde1Threshold: 20, horde2Threshold: 38, baseSpawnRate: 350 };
     let zombiesSpawned = 0;
 
+    // --- [INICIO_ZONA_VARIABLES_HORDAS_5.2] ---
+    let hordeDelayTimer = 0;
+    let horde1Triggered = false;
+    let horde2Triggered = false;
+    let hordeMessageTimer = 0;
+    let hordeMessageText = '';
+    let spawnTimer = 0;
+    // --- [FIN_ZONA_VARIABLES_HORDAS_5.2] ---
+
     // Recursos
     const imageSources = {
         background: 'recursos/background.png',
@@ -329,7 +338,58 @@
 
     // --- [INICIO_ZONA_CLASE_LAWNMOWER_5.2] ---
     class Lawnmower {
-        // IA inyectará la lógica y clase del cortacésped aquí en Lote 5
+        constructor(row) {
+            this.row = row;
+            this.x = -70;
+            this.y = GRID_START_Y + (row * CELL_HEIGHT) + (CELL_HEIGHT / 2);
+            this.speed = 12;
+            this.active = false;
+            this.isDead = false;
+        }
+
+        update() {
+            if (!this.active) return;
+
+            this.x += this.speed;
+
+            // Colisión con zombis mientras avanza
+            for (const z of zombies) {
+                if (z.markedForDeletion || z.state === 'die') continue;
+                if (z.row !== this.row) continue;
+
+                const distance = Math.abs(this.x - z.x);
+                if (distance < 60) {
+                    z.takeDamage(9999);
+                    // Partículas de chispas metálicas
+                    for (let i = 0; i < 10; i++) {
+                        particles.push(new Particle(z.x, z.y, '#C0C0C0', 'spark'));
+                        particles.push(new Particle(z.x, z.y, '#808080', 'circle'));
+                    }
+                }
+            }
+
+            // Limpieza: fuera del canvas
+            if (this.x > canvas.width) {
+                this.isDead = true;
+            }
+        }
+
+        draw() {
+            if (images.cortacesped) {
+                const img = images.cortacesped;
+                const drawX = this.x;
+                const drawY = this.y - img.height / 2;
+                ctx.drawImage(img, drawX, drawY);
+            }
+        }
+
+        activate() {
+            if (this.active) return;
+            this.active = true;
+            const audio = new Audio('recursos/sonidos/Corta cesped.wav');
+            audio.volume = 0.6;
+            audio.play().catch(e => {});
+        }
     }
     // --- [FIN_ZONA_CLASE_LAWNMOWER_5.2] ---
 
@@ -847,14 +907,9 @@
     // 3. INICIALIZACIÓN
     // ==========================================
     function init() {
-        // Inicialización temporal, la IA la modificará en Tarea 5.2
+        // Instanciar 5 cortacéspedes, uno por fila (Tarea 5.2)
         for (let i = 0; i < ROWS; i++) {
-            lawnmowers.push({
-                x: -70,
-                y: GRID_START_Y + (i * CELL_HEIGHT) + (CELL_HEIGHT / 2) - 30,
-                row: i,
-                active: false
-            });
+            lawnmowers.push(new Lawnmower(i));
         }
         loadImages();
     }
@@ -922,6 +977,12 @@
         // === [FIN_TRIGGER_TAREA_5.1] ===
 
         // === [TRIGGER_TAREA_5.2] ===
+        // Forzar zombiesSpawned cerca del threshold para probar hordas rápidamente
+        zombiesSpawned = 18;
+        // Spawnear un zombi en fila 2 cerca del cortacésped para probar activación
+        const testZombie = new Zombie(2);
+        testZombie.x = 100;
+        zombies.push(testZombie);
         // === [FIN_TRIGGER_TAREA_5.2] ===
 
         requestAnimationFrame(gameLoop);
@@ -1013,13 +1074,98 @@
         // --- [FIN_ZONA_SPAWN_SOLES_4.1] ---
 
         // --- [INICIO_ZONA_SPAWN_NORMAL_2.1] ---
+        if (hordeDelayTimer <= 0 && zombiesSpawned < LEVEL_CONFIG.totalZombies) {
+            spawnTimer++;
+            if (spawnTimer >= LEVEL_CONFIG.baseSpawnRate) {
+                const z = new Zombie();
+                zombies.push(z);
+                zombiesSpawned++;
+                spawnTimer = 0;
+            }
+        }
+        if (hordeDelayTimer > 0) hordeDelayTimer--;
         // --- [FIN_ZONA_SPAWN_NORMAL_2.1] ---
 
-        // --- [INICIO_ZONA_SPAWN_HORDAS_4.2] ---
-        // IA inyectará lógica del director de hordas aquí
-        // --- [FIN_ZONA_SPAWN_HORDAS_4.2] ---
+        // --- [INICIO_ZONA_SPAWN_HORDAS_5.2] ---
+        // Horda 1
+        if (!horde1Triggered && zombiesSpawned >= LEVEL_CONFIG.horde1Threshold) {
+            horde1Triggered = true;
+            hordeDelayTimer = 240;
+            hordeMessageText = '¡GRAN HORDA DE ZOMBIS!';
+            hordeMessageTimer = 180;
+            const hordeAudio = new Audio('recursos/sonidos/Horda de zombis.mp3');
+            hordeAudio.volume = 0.5;
+            hordeAudio.play().catch(e => {});
+
+            // Spawn en columnas verticales al finalizar el delay
+            for (let row = 0; row < ROWS; row++) {
+                const z1 = new Zombie(row);
+                z1.x = canvas.width + 50;
+                pendingZombies.push(z1);
+                const z2 = new Zombie(row);
+                z2.x = canvas.width + 120;
+                pendingZombies.push(z2);
+            }
+        }
+
+        // Horda 2
+        if (!horde2Triggered && zombiesSpawned >= LEVEL_CONFIG.horde2Threshold) {
+            horde2Triggered = true;
+            hordeDelayTimer = 240;
+            hordeMessageText = '¡GRAN HORDA DE ZOMBIS!';
+            hordeMessageTimer = 180;
+            const hordeAudio = new Audio('recursos/sonidos/Horda de zombis.mp3');
+            hordeAudio.volume = 0.5;
+            hordeAudio.play().catch(e => {});
+
+            for (let row = 0; row < ROWS; row++) {
+                const z1 = new Zombie(row);
+                z1.x = canvas.width + 50;
+                pendingZombies.push(z1);
+                const z2 = new Zombie(row);
+                z2.x = canvas.width + 120;
+                pendingZombies.push(z2);
+            }
+        }
+
+        // Liberar zombis pendientes cuando termina el delay
+        if (hordeDelayTimer === 1 && pendingZombies.length > 0) {
+            for (const pz of pendingZombies) {
+                zombies.push(pz);
+                zombiesSpawned++;
+            }
+            pendingZombies = [];
+        }
+
+        // Decrementar timer del mensaje de horda
+        if (hordeMessageTimer > 0) hordeMessageTimer--;
+        // --- [FIN_ZONA_SPAWN_HORDAS_5.2] ---
 
         checkCollisions();
+
+        // --- [INICIO_ZONA_UPDATE_LAWNMOWERS_5.2] ---
+        // Activar cortacésped al colisionar con un zombi
+        for (const mower of lawnmowers) {
+            if (mower.isDead) continue;
+
+            if (!mower.active) {
+                // Detectar colisión con zombis en la misma fila
+                for (const z of zombies) {
+                    if (z.markedForDeletion || z.state === 'die') continue;
+                    if (z.row !== mower.row) continue;
+
+                    const distance = Math.abs(z.x - mower.x);
+                    if (distance < 70) {
+                        mower.activate();
+                        break;
+                    }
+                }
+            }
+
+            mower.update();
+        }
+        lawnmowers = lawnmowers.filter(m => !m.isDead);
+        // --- [FIN_ZONA_UPDATE_LAWNMOWERS_5.2] ---
 
         // --- [INICIO_ZONA_CONDICIONES_FINALES_5.3] ---
         // IA inyectará las condiciones de Victoria y Derrota aquí
@@ -1288,12 +1434,24 @@
     }
 
     function drawLawnmowers() {
-        lawnmowers.forEach(mower => {
-            if (images.cortacesped) {
-                const drawY = GRID_START_Y + (mower.row * CELL_HEIGHT) + (CELL_HEIGHT/2) - (images.cortacesped.height / 2);
-                ctx.drawImage(images.cortacesped, mower.x, drawY);
-            }
-        });
+        lawnmowers.forEach(mower => mower.draw());
+
+        // --- [INICIO_ZONA_DRAW_HORDE_MSG_5.2] ---
+        if (hordeMessageTimer > 0) {
+            ctx.save();
+            const alpha = Math.min(hordeMessageTimer / 30, 1);
+            ctx.globalAlpha = alpha;
+            ctx.font = 'bold 80px Arial';
+            ctx.fillStyle = '#FF0000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 6;
+            ctx.strokeText(hordeMessageText, canvas.width / 2, canvas.height / 2);
+            ctx.fillText(hordeMessageText, canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+        }
+        // --- [FIN_ZONA_DRAW_HORDE_MSG_5.2] ---
     }
 
     // --- [INICIO_ZONA_FUNC_DEBUG_3.2] ---
