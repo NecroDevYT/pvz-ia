@@ -768,8 +768,13 @@
                 for (let i = 0; i < seeds.length; i++) {
                     const seedEndX = currentSeedX + envolturaWidth;
                     if (mouseX >= currentSeedX && mouseX < seedEndX) {
-                        selectedSeed = seeds[i];
-                        isShovelActive = false;
+                        const canAfford = isDebug || sunAmount >= seeds[i].cost;
+                        const isReady = isDebug || seeds[i].timer <= 0;
+                        
+                        if (canAfford && isReady) {
+                            selectedSeed = seeds[i];
+                            isShovelActive = false;
+                        }
                         break;
                     }
                     currentSeedX += envolturaWidth;
@@ -846,25 +851,14 @@
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
-        const debugZombies = [
-            new Zombie(0), new Zombie(2), new Zombie(4),
-            new Zombie(1), new Zombie(3),
-            new Zombie(2), new Zombie(2)
-        ];
-        debugZombies[0].x = GRID_END_X + 50; debugZombies[1].x = GRID_END_X + 50; debugZombies[2].x = GRID_END_X + 50;
-        debugZombies[3].x = GRID_END_X + 50; debugZombies[4].x = GRID_END_X + 50;
-        debugZombies[5].x = GRID_END_X + 50; debugZombies[6].x = GRID_END_X + 50;
-        debugZombies.forEach(z => zombies.push(z));
-
-        // Segunda columna de zombis
-        const debugZombies2 = [
-            new Zombie(0), new Zombie(1), new Zombie(2),
-            new Zombie(3), new Zombie(4)
-        ];
-        debugZombies2.forEach(z => {
-            z.x = GRID_END_X + 50 + CELL_WIDTH;
-            zombies.push(z);
-        });
+        // 3 filas de zombis (5 por fila) con un espacio de celda entre filas
+        for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col < 3; col++) {
+                const z = new Zombie(row);
+                z.x = GRID_END_X + 50 + (col * CELL_WIDTH * 2);
+                zombies.push(z);
+            }
+        }
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
@@ -879,8 +873,8 @@
         // === [TRIGGER_TAREA_4.2] ===
         // Dar soles suficientes para probar visualmente los 3 estados de las semillas
         sunAmount = 150;
-        // Forzar cooldown en la nuez para ver el efecto de recarga invertido
-        seeds[2].timer = seeds[2].cooldown;
+        // Semillas inician sin cooldown
+        seeds.forEach(seed => seed.timer = 0);
         // === [FIN_TRIGGER_TAREA_4.2] ===
 
         // === [TRIGGER_TAREA_4.3] ===
@@ -1047,6 +1041,22 @@
 
         drawUI();
 
+        // Preview de planta siguiendo el cursor (encima de la UI)
+        if (selectedSeed) {
+            const animData = plantAnimations[selectedSeed.name];
+            if (animData && animData.frames.length > 0 && animData.frames[0]) {
+                const plantImg = animData.frames[0];
+                const scale = animData.scale;
+                const width = plantImg.naturalWidth * scale;
+                const height = plantImg.naturalHeight * scale;
+
+                ctx.save();
+                ctx.globalAlpha = 0.7;
+                ctx.drawImage(plantImg, mouseX - width / 2, mouseY - height / 2, width, height);
+                ctx.restore();
+            }
+        }
+
         // --- [INICIO_ZONA_DRAW_COOLDOWN_3.1] ---
         let currentSeedX = seedRange.min;
         
@@ -1165,8 +1175,8 @@
                 ctx.drawImage(envolturaImg, currentSeedX, 20);
 
                 // --- [INICIO_ZONA_ALPHA_SEMILLAS_4.2] ---
-                if (isReady && !canAfford) {
-                    // Semitransparente si no hay soles suficientes
+                if (!canAfford) {
+                    // Semitransparente si no hay soles suficientes (se suma al cooldown)
                     ctx.globalAlpha = 0.5;
                 }
                 // --- [FIN_ZONA_ALPHA_SEMILLAS_4.2] ---
