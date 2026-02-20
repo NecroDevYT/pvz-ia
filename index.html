@@ -125,7 +125,7 @@
             this.y = y;
             this.isFalling = isFalling;
             this.finalY = isFalling ? y + Math.random() * 300 + 200 : y;
-            this.fallSpeed = 1.5;
+            this.fallSpeed = 1.875;
             this.isCollecting = false;
             this.targetX = 105;
             this.targetY = 100;
@@ -135,13 +135,22 @@
             this.height = 0;
             this.markedForDeletion = false;
             // --- [INICIO_ZONA_LIFETIMER_SOL_4.1] ---
-            // IA inyectará lógica de ciclo de vida aquí
+            this.hasCompletedCycle = false;
             // --- [FIN_ZONA_LIFETIMER_SOL_4.1] ---
         }
 
         update() {
             // --- [INICIO_ZONA_UPDATE_SOL_4.1] ---
-            // IA inyectará la lógica de desaparición por animación aquí
+            if (!this.isCollecting && !this.isFalling && !this.hasCompletedCycle) {
+                const prevFrame = this.frame;
+                if (frames % this.animSpeed === 0) {
+                    const nextFrame = (this.frame + 1) % SUN_TOTAL_FRAMES;
+                    if (nextFrame === 0 && prevFrame === SUN_TOTAL_FRAMES - 1) {
+                        this.hasCompletedCycle = true;
+                        this.markedForDeletion = true;
+                    }
+                }
+            }
             // --- [FIN_ZONA_UPDATE_SOL_4.1] ---
 
             if (frames % this.animSpeed === 0) {
@@ -704,7 +713,10 @@
                 new Audio('recursos/sonidos/Recoger sol 1.wav').play();
                 
                 // --- [INICIO_ZONA_PARTICULAS_SOL_4.1] ---
-                // IA inyectará partículas rápidas al clic aquí
+                for (let i = 0; i < 12; i++) {
+                    particles.push(new Particle(sun.x, sun.y, '#FFD700', 'spark'));
+                    particles.push(new Particle(sun.x, sun.y, '#FFFFFF', 'circle'));
+                }
                 // --- [FIN_ZONA_PARTICULAS_SOL_4.1] ---
                 break;
             }
@@ -783,8 +795,13 @@
                 for (let i = 0; i < seeds.length; i++) {
                     const seedEndX = currentSeedX + envolturaWidth;
                     if (mouseX >= currentSeedX && mouseX < seedEndX) {
-                        selectedSeed = seeds[i];
-                        isShovelActive = false;
+                        const canAfford = isDebug || sunAmount >= seeds[i].cost;
+                        const isReady = isDebug || seeds[i].timer <= 0;
+                        
+                        if (canAfford && isReady) {
+                            selectedSeed = seeds[i];
+                            isShovelActive = false;
+                        }
                         break;
                     }
                     currentSeedX += envolturaWidth;
@@ -863,24 +880,30 @@
         // === [FIN_TRIGGER_TAREA_2.1] ===
 
         // === [TRIGGER_TAREA_2.2] ===
-        const debugZombies = [
-            new Zombie(0), new Zombie(2), new Zombie(4),
-            new Zombie(1), new Zombie(3),
-            new Zombie(2), new Zombie(2)
-        ];
-        debugZombies[0].x = GRID_END_X + 50; debugZombies[1].x = GRID_END_X + 50; debugZombies[2].x = GRID_END_X + 50;
-        debugZombies[3].x = GRID_END_X + 50; debugZombies[4].x = GRID_END_X + 50;
-        debugZombies[5].x = GRID_END_X + 50; debugZombies[6].x = GRID_END_X + 50;
-        debugZombies.forEach(z => zombies.push(z));
+        // 3 filas de zombis (5 por fila) con un espacio de celda entre filas
+        for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col < 3; col++) {
+                const z = new Zombie(row);
+                z.x = GRID_END_X + 50 + (col * CELL_WIDTH * 2);
+                zombies.push(z);
+            }
+        }
         // === [FIN_TRIGGER_TAREA_2.2] ===
 
         // === [TRIGGER_TAREA_3.2] ===
         // === [FIN_TRIGGER_TAREA_3.2] ===
 
         // === [TRIGGER_TAREA_4.1] ===
+        setTimeout(() => {
+            spawnSun(400, 200, true);
+        }, 1000);
         // === [FIN_TRIGGER_TAREA_4.1] ===
 
         // === [TRIGGER_TAREA_4.2] ===
+        // Dar soles suficientes para probar visualmente los 3 estados de las semillas
+        sunAmount = 150;
+        // Semillas inician sin cooldown
+        seeds.forEach(seed => seed.timer = 0);
         // === [FIN_TRIGGER_TAREA_4.2] ===
 
         // === [TRIGGER_TAREA_4.3] ===
@@ -973,7 +996,11 @@
         // === [FIN_TRIGGER_TAREA_3.3] ===
 
         // --- [INICIO_ZONA_SPAWN_SOLES_4.1] ---
-        // IA inyectará spawner automático de soles aquí
+        if (frames % 300 === 0) {
+            const randomX = GRID_START_X + Math.random() * (GRID_END_X - GRID_START_X);
+            const randomFinalY = GRID_START_Y + Math.random() * (GRID_END_Y - GRID_START_Y);
+            spawnSun(randomX, 200, true);
+        }
         // --- [FIN_ZONA_SPAWN_SOLES_4.1] ---
 
         // --- [INICIO_ZONA_SPAWN_NORMAL_2.1] ---
@@ -1043,30 +1070,46 @@
 
         drawUI();
 
+        // Preview de planta siguiendo el cursor (encima de la UI)
+        if (selectedSeed) {
+            const animData = plantAnimations[selectedSeed.name];
+            if (animData && animData.frames.length > 0 && animData.frames[0]) {
+                const plantImg = animData.frames[0];
+                const scale = animData.scale;
+                const width = plantImg.naturalWidth * scale;
+                const height = plantImg.naturalHeight * scale;
+
+                ctx.save();
+                ctx.globalAlpha = 0.7;
+                ctx.drawImage(plantImg, mouseX - width / 2, mouseY - height / 2, width, height);
+                ctx.restore();
+            }
+        }
+
         // --- [INICIO_ZONA_DRAW_COOLDOWN_3.1] ---
         let currentSeedX = seedRange.min;
         
         seeds.forEach(seed => {
             const envolturaImg = images.envoltura;
             
-            if (envolturaImg && seed.timer > 0) {
+            // --- [INICIO_ZONA_UI_SEMILLAS_4.2] ---
+            // En Debug Mode, no dibujar cooldown visual
+            if (!isDebug && envolturaImg && seed.timer > 0) {
                 const seedWidth = envolturaImg.width;
                 const seedHeight = envolturaImg.height;
                 const cooldownRatio = seed.timer / seed.cooldown;
                 const overlayHeight = seedHeight * cooldownRatio;
-                
-                // --- [INICIO_ZONA_UI_SEMILLAS_4.2] ---
-                // IA modificará el relleno del cooldown visual aquí
-                // --- [FIN_ZONA_UI_SEMILLAS_4.2] ---
 
+                // Cooldown se revela de abajo hacia arriba
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.fillRect(
                     currentSeedX,
-                    20 + seedHeight - overlayHeight,
+                    20,
                     seedWidth,
                     overlayHeight
                 );
             }
+            // --- [FIN_ZONA_UI_SEMILLAS_4.2] ---
             currentSeedX += envolturaImg ? envolturaImg.width : 0;
         });
         // --- [FIN_ZONA_DRAW_COOLDOWN_3.1] ---
@@ -1158,11 +1201,33 @@
             const plantaImg = images[seed.imageKey];
             
             if (envolturaImg && plantaImg) {
-                const seedWidth = envolturaImg.width; 
+                const seedWidth = envolturaImg.width;
+                const isReady = isDebug || seed.timer <= 0;
+                const canAfford = isDebug || sunAmount >= seed.cost;
+
+                ctx.save();
+
+                // --- [INICIO_ZONA_GLOW_SEMILLAS_4.2] ---
+                if (isReady && canAfford) {
+                    // Resplandor sutil si la planta está lista y hay soles
+                    ctx.shadowColor = 'rgba(255, 255, 200, 0.7)';
+                    ctx.shadowBlur = 15;
+                }
+                // --- [FIN_ZONA_GLOW_SEMILLAS_4.2] ---
+
                 ctx.drawImage(envolturaImg, currentSeedX, 20);
-                
+
+                // --- [INICIO_ZONA_ALPHA_SEMILLAS_4.2] ---
+                if (!canAfford) {
+                    // Semitransparente si no hay soles suficientes (se suma al cooldown)
+                    ctx.globalAlpha = 0.5;
+                }
+                // --- [FIN_ZONA_ALPHA_SEMILLAS_4.2] ---
+
                 const plantaX = currentSeedX + (seedWidth / 2) - (plantaImg.width / 2);
                 ctx.drawImage(plantaImg, plantaX, 0);
+
+                ctx.restore();
                 
                 ctx.font = '25px Arial';
                 ctx.fillStyle = 'black';
